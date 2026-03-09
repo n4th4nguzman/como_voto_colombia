@@ -44,8 +44,32 @@
         </div>
     </header>
 
+    <!-- ============ STATS BAR ============ -->
+    <section class="stats-bar" id="stats-bar">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-legislators">-</span>
+                    <span class="stat-label">Legisladores</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-votaciones">-</span>
+                    <span class="stat-label">Votaciones</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-years">-</span>
+                    <span class="stat-label">Años cubiertos</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-updated">-</span>
+                    <span class="stat-label">Última actualización</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ============ SEARCH SECTION ============ -->
-    <section class="search-section">
+    <section class="search-section card-outline">
         <div class="container">
             <div class="search-box">
                 <label for="search-input" class="search-label">Buscá un Diputado/a o Senador/a</label>
@@ -115,32 +139,8 @@
         </div>
     </section>
 
-    <!-- ============ STATS BAR ============ -->
-    <section class="stats-bar" id="stats-bar">
-        <div class="container">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-number" id="stat-legislators">-</span>
-                    <span class="stat-label">Legisladores</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number" id="stat-votaciones">-</span>
-                    <span class="stat-label">Votaciones</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number" id="stat-years">-</span>
-                    <span class="stat-label">Años cubiertos</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number" id="stat-updated">-</span>
-                    <span class="stat-label">Última actualización</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- ============ LAW SEARCH SECTION (homepage) ============ -->
-    <section class="law-search-section" id="law-search-section">
+    <section class="law-search-section card-outline" id="law-search-section">
         <div class="container">
             <h2 class="section-title">📜 Buscá una Ley</h2>
             <p class="section-desc">Mirá cómo votó cada bloque en las leyes del Congreso</p>
@@ -206,11 +206,12 @@
     <section class="ranking-section" id="ranking-section">
         <div class="container">
             <!-- ---- Ranking 1: Cantidad de Votos ---- -->
-            <div class="ranking-title-row" id="ranking-votos">
-                <div>
-                    <h2 class="section-title">🏆 Ranking de Legisladores por Cantidad de Votos</h2>
-                    <p class="section-desc">Ordená legisladores por votaciones, presentismo y ausencias</p>
-                </div>
+            <div class="ranking-card card-outline" id="ranking-votos-card">
+                <div class="ranking-title-row" id="ranking-votos">
+                    <div>
+                        <h2 class="section-title">🏆 Ranking de Legisladores por Cantidad de Votos</h2>
+                        <p class="section-desc">Ordená legisladores por votaciones, presentismo y ausencias</p>
+                    </div>
                 <div class="ranking-export-row">
                     <button class="btn-share" id="btn-copy-rv" title="Copiar imagen al portapapeles">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -289,13 +290,15 @@
                 </table>
             </div>
             <div class="votes-pagination" id="rv-pagination"></div>
+            </div>
 
             <!-- ---- Ranking 2: Afinidad Política ---- -->
-            <div class="ranking-title-row" id="ranking-afinidad" style="margin-top:3rem">
-                <div>
-                    <h2 class="section-title">📊 Ranking de mandatos por Afinidad Política</h2>
-                    <p class="section-desc">Cada fila corresponde a uno o más mandatos por legislador, agrupado según la coalición a la que pertenecía el partido o alianza cuya lista integró el legislador en la elección. Las cantidades de votos muestran afinidad con el voto mayoritario de cada coalición (sólo para votaciones divididas).</p>
-                </div>
+            <div class="ranking-card card-outline" id="ranking-afinidad-card">
+                <div class="ranking-title-row" id="ranking-afinidad">
+                    <div>
+                        <h2 class="section-title">📊 Ranking de mandatos por Afinidad Política</h2>
+                        <p class="section-desc">Cada fila corresponde a uno o más mandatos por legislador, agrupado según la coalición a la que pertenecía el partido o alianza cuya lista integró el legislador en la elección. Las cantidades de votos muestran afinidad con el voto mayoritario de cada coalición (sólo para votaciones divididas).</p>
+                    </div>
                 <div class="ranking-export-row">
                     <button class="btn-share" id="btn-copy-ra" title="Copiar imagen al portapapeles">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -376,6 +379,7 @@
                 </table>
             </div>
             <div class="votes-pagination" id="ra-pagination"></div>
+            </div>
         </div>
     </section>
 
