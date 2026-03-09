@@ -853,6 +853,43 @@ async function exportRankingTable(prefix, mode) {
     card.remove();
 }
 
+/**
+ * Share ranking to X (Twitter) with URL that preserves current filters
+ */
+function shareRanking(prefix) {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const params = new URLSearchParams();
+
+    // Add hash for ranking section
+    const hash = prefix === "rv" ? "#ranking-votos" : "#ranking-afinidad";
+
+    // Add ranking-specific filter parameters
+    const chamberEl = document.getElementById(`${prefix}-chamber`);
+    const coalitionEl = document.getElementById(`${prefix}-coalition`);
+    const sortEl = document.getElementById(`${prefix}-sort`);
+    const orderEl = document.getElementById(`${prefix}-order`);
+
+    if (chamberEl && chamberEl.value) params.set(`${prefix}-chamber`, chamberEl.value);
+    if (coalitionEl && coalitionEl.value) params.set(`${prefix}-coalition`, coalitionEl.value);
+    if (sortEl && sortEl.value) params.set(`${prefix}-sort`, sortEl.value);
+    if (orderEl && orderEl.value) params.set(`${prefix}-order`, orderEl.value);
+
+    // Add page size and page number
+    const pageSize = prefix === "rv" ? rvPageSize : raPageSize;
+    const page = prefix === "rv" ? rvPage : raPage;
+    params.set(`${prefix}-pagesize`, pageSize);
+    params.set(`${prefix}-page`, page);
+
+    const url = `${baseUrl}${hash}${params.toString() ? '?' + params.toString() : ''}`;
+
+    // Build share text
+    const rankingName = prefix === "rv" ? "Ranking de Votaciones" : "Ranking de Afinidad Política";
+    const text = `Mirá el ${rankingName} de legisladores en ¿Cómo Votó?`;
+
+    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(shareUrl, '_blank', 'width=600,height=400');
+}
+
 // ===========================================================================
 //  LEGISLATOR DETAIL
 // ===========================================================================
@@ -2485,7 +2522,25 @@ function parseArgDate(dateStr) {
         const chamberEl = document.getElementById(prefix + "-chamber");
         const coalitionEl = document.getElementById(prefix + "-coalition");
         const pagesizeEl = document.getElementById(prefix + "-pagesize");
-        function onChange() { setPage(1); renderFn(); }
+
+        function updateUrl() {
+            // Build URL with hash and query params
+            const hash = prefix === "rv" ? "#ranking-votos" : "#ranking-afinidad";
+            const params = new URLSearchParams();
+            
+            // Update filter params
+            if (chamberEl?.value) params.set(`${prefix}-chamber`, chamberEl.value);
+            if (coalitionEl?.value) params.set(`${prefix}-coalition`, coalitionEl.value);
+            if (sortEl?.value) params.set(`${prefix}-sort`, sortEl.value);
+            if (orderEl?.value) params.set(`${prefix}-order`, orderEl.value);
+            params.set(`${prefix}-pagesize`, getPageSize());
+            params.set(`${prefix}-page`, getPage());
+
+            const url = `${window.location.origin}${window.location.pathname}${hash}${params.toString() ? '?' + params.toString() : ''}`;
+            window.history.pushState({}, "", url);
+        }
+
+        function onChange() { setPage(1); renderFn(); updateUrl(); }
         if (sortEl) sortEl.addEventListener("change", () => { setSort(sortEl.value); onChange(); });
         if (orderEl) orderEl.addEventListener("change", () => { setAsc(orderEl.value === "asc"); onChange(); });
         if (chamberEl) chamberEl.addEventListener("change", onChange);
@@ -2506,6 +2561,7 @@ function parseArgDate(dateStr) {
                 }
                 setPage(1);
                 renderFn();
+                updateUrl();
             });
         });
         renderFn();
@@ -2522,8 +2578,103 @@ function parseArgDate(dateStr) {
     // Wire ranking export buttons
     document.getElementById("btn-copy-rv")?.addEventListener("click", () => exportRankingTable("rv", "copy"));
     document.getElementById("btn-download-rv")?.addEventListener("click", () => exportRankingTable("rv", "download"));
+    document.getElementById("btn-share-rv")?.addEventListener("click", () => shareRanking("rv"));
     document.getElementById("btn-copy-ra")?.addEventListener("click", () => exportRankingTable("ra", "copy"));
     document.getElementById("btn-download-ra")?.addEventListener("click", () => exportRankingTable("ra", "download"));
+    document.getElementById("btn-share-ra")?.addEventListener("click", () => shareRanking("ra"));
+
+    // Handle URL hash and parameters for rankings
+    function applyRankingFiltersFromUrl() {
+        // Parse hash which may contain both section and query params
+        // e.g., #ranking-afinidad?ra-coalition=JxC&ra-sort=vpj
+        let hash = window.location.hash;
+        let params = new URLSearchParams(window.location.search);
+        
+        // If there are params in the hash, parse them
+        if (hash && hash.includes('?')) {
+            const hashParts = hash.split('?');
+            const hashSection = hashParts[0];
+            const hashQueryString = hashParts.slice(1).join('?');
+            params = new URLSearchParams(hashQueryString);
+            hash = hashSection;
+        }
+
+        // Apply filters for Ranking Votos
+        function applyFilters(prefix, sortSetter, ascSetter, pageSetter, renderFn) {
+            const chamberEl = document.getElementById(`${prefix}-chamber`);
+            const coalitionEl = document.getElementById(`${prefix}-coalition`);
+            const sortEl = document.getElementById(`${prefix}-sort`);
+            const orderEl = document.getElementById(`${prefix}-order`);
+            const pagesizeEl = document.getElementById(`${prefix}-pagesize`);
+
+            let changed = false;
+            if (chamberEl && params.has(`${prefix}-chamber`)) {
+                chamberEl.value = params.get(`${prefix}-chamber`);
+                changed = true;
+            }
+            if (coalitionEl && params.has(`${prefix}-coalition`)) {
+                coalitionEl.value = params.get(`${prefix}-coalition`);
+                changed = true;
+            }
+            if (sortEl && params.has(`${prefix}-sort`)) {
+                const sortVal = params.get(`${prefix}-sort`);
+                sortSetter(sortVal);
+                sortEl.value = sortVal;
+                changed = true;
+            }
+            if (orderEl && params.has(`${prefix}-order`)) {
+                const orderVal = params.get(`${prefix}-order`);
+                ascSetter(orderVal === "asc");
+                orderEl.value = orderVal;
+                changed = true;
+            }
+            if (pagesizeEl && params.has(`${prefix}-pagesize`)) {
+                const size = parseInt(params.get(`${prefix}-pagesize`), 10);
+                if ([5, 10, 25, 50].includes(size)) {
+                    if (prefix === "rv") rvPageSize = size; else raPageSize = size;
+                    pagesizeEl.value = size;
+                    changed = true;
+                }
+            }
+            // Apply page number
+            if (params.has(`${prefix}-page`)) {
+                const pageNum = parseInt(params.get(`${prefix}-page`), 10);
+                if (pageNum >= 1) {
+                    pageSetter(pageNum);
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                renderFn();
+            }
+        }
+
+        applyFilters("rv",
+            v => { rvSortCol = v; },
+            v => { rvSortAsc = v; },
+            v => { rvPage = v; },
+            renderRankingVotes
+        );
+        applyFilters("ra",
+            v => { raSortCol = v; },
+            v => { raSortAsc = v; },
+            v => { raPage = v; },
+            renderRankingAlignment
+        );
+
+        // Scroll to ranking section after filters are applied
+        setTimeout(() => {
+            if (hash === "#ranking-votos") {
+                document.getElementById("ranking-votos")?.scrollIntoView({ behavior: "smooth" });
+            } else if (hash === "#ranking-afinidad") {
+                document.getElementById("ranking-afinidad")?.scrollIntoView({ behavior: "smooth" });
+            }
+        }, 50);
+    }
+    
+    // Apply URL filters after rankings are initialized
+    applyRankingFiltersFromUrl();
 
     // Wire votes table filters (were missing)
     const votesYearFilter = document.getElementById("votes-year-filter");
