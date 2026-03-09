@@ -30,6 +30,11 @@ const LAWS_PER_PAGE = 10;
 
 const DATA_PATH = "data";
 
+// Normalize text for search: remove accents and convert to lowercase
+function normalizeText(text) {
+    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 // Widget instance for the multi-year waffle dropdown
 let _waffleYearWidget = null;
 
@@ -117,6 +122,7 @@ function initMultiSelect(selectEl, placeholder = "Todos") {
 
 function onSearchInput({ requireQuery = true } = {}) {
     const query = document.getElementById("search-input").value.trim().toLowerCase();
+    const queryNorm = normalizeText(query);
     const chamber = document.getElementById("filter-chamber").value;
     const coalition = document.getElementById("filter-coalition").value;
     const province = (document.getElementById("filter-province")?.value || "").trim();
@@ -141,9 +147,9 @@ function onSearchInput({ requireQuery = true } = {}) {
         results = results.filter((l) => (l.p || "").toLowerCase() === pv);
     }
     if (query) {
-        const terms = query.split(/\s+/);
+        const terms = queryNorm.split(/\s+/);
         results = results.filter((l) => {
-            const searchable = `${l.n} ${l.b} ${l.p}`.toLowerCase();
+            const searchable = normalizeText(`${l.n} ${l.b} ${l.p}`);
             return terms.every((t) => searchable.includes(t));
         });
     }
@@ -194,8 +200,10 @@ function chamberBadges(chamberStr) {
 function highlightMatch(name) {
     const query = document.getElementById("search-input").value.trim();
     if (!query) return escapeHtml(name);
-    const regex = new RegExp(`(${escapeRegex(query)})`, "gi");
-    return escapeHtml(name).replace(regex, "<strong>$1</strong>");
+    // Highlight matching text (case-insensitive) in the original name
+    const escapedName = escapeHtml(name);
+    const simpleRegex = new RegExp(`(${escapeRegex(query)})`, "gi");
+    return escapedName.replace(simpleRegex, "<strong>$1</strong>");
 }
 
 function hideSearchResults() {
@@ -208,6 +216,7 @@ function hideSearchResults() {
 
 function onLawSearchInput() {
     const query = document.getElementById("law-search").value.trim().toLowerCase();
+    const queryNorm = normalizeText(query);
     const yearVal = (document.getElementById("law-year-filter")?.value || "");
     const chamberVal = document.getElementById("law-chamber-filter").value;
     const dropdown = document.getElementById("law-search-results");
@@ -228,9 +237,9 @@ function onLawSearchInput() {
         results = results.filter((l) => l.ch === chamberVal);
     }
     if (query) {
-        const terms = query.split(/\s+/);
+        const terms = queryNorm.split(/\s+/);
         results = results.filter((l) => {
-            const searchable = (l.n || "").toLowerCase();
+            const searchable = normalizeText(l.n || "");
             return terms.every((t) => searchable.includes(t));
         });
     }
@@ -1037,18 +1046,18 @@ function renderLegislatorDetail(data) {
     const infoCard = document.getElementById("leg-info-card");
     const stats = data.yearly_stats || {};
     const trailingAus = data.trailing_ausente || 0;
-    const activeYears = Object.keys(stats).filter((y) => {
+    // Use ALL years (no filtering) to match ranking calculation
+    // Use same formula as Python: total_present = total_votes - total_ausente
+    let totalV = 0, totalAusente = 0;
+    for (const y of Object.keys(stats)) {
         const s = stats[y];
-        return (s.AFIRMATIVO||0)+(s.NEGATIVO||0)+(s.ABSTENCION||0)+(s.AUSENTE||0) >= 5;
-    });
-    let totalV = 0, totalPresent = 0;
-    for (const y of activeYears) {
-        const s = stats[y];
-        totalV       += (s.total || 0);
-        totalPresent += (s.AFIRMATIVO||0) + (s.NEGATIVO||0) + (s.ABSTENCION||0);
+        totalV     += (s.total || 0);
+        totalAusente += (s.AUSENTE || 0);
     }
     // Exclude trailing AUSENTE votes (post-departure absences)
     const effectiveV = totalV - trailingAus;
+    const effectiveAusente = totalAusente - trailingAus;
+    const totalPresent = effectiveV - effectiveAusente;
     const presentismoPct = effectiveV > 0 ? Math.round(totalPresent / effectiveV * 100) : null;
     document.getElementById("leg-presentismo").textContent =
         presentismoPct !== null ? presentismoPct + "\u00a0%" : "N/A";
@@ -1066,17 +1075,20 @@ function renderLegislatorDetail(data) {
         const rows = terms.map((t, idx) => {
             const period = t.yf === t.yt ? t.yf : `${t.yf}\u2013${t.yt}`;
             // Per-term presentismo: sum yearly_stats for years within [yf, yt]
-            let termV = 0, termPres = 0;
+            // Use same formula as Python: total_present = total_votes - total_ausente
+            let termV = 0, termAusente = 0;
             for (let y = t.yf; y <= t.yt; y++) {
                 const s = stats[String(y)];
                 if (!s || (s.total||0) < 1) continue;
-                termV    += (s.total || 0);
-                termPres += (s.AFIRMATIVO||0) + (s.NEGATIVO||0) + (s.ABSTENCION||0);
+                termV      += (s.total || 0);
+                termAusente += (s.AUSENTE || 0);
             }
             // For the last term, exclude trailing post-departure absences
             const termTrail = (idx === terms.length - 1) ? trailingAus : 0;
             const effTermV = termV - termTrail;
-            const tPct = effTermV > 0 ? Math.round(termPres / effTermV * 100) + "\u00a0%" : "N/A";
+            const effTermAusente = termAusente - termTrail;
+            const effTermPresent = effTermV - effTermAusente;
+            const tPct = effTermV > 0 ? Math.round(effTermPresent / effTermV * 100) + "\u00a0%" : "N/A";
             return `<tr>
                 <td><span class="badge ${chCls(t.ch)}">${chLabel(t.ch)}</span></td>
                 <td>${period}</td>
@@ -1716,17 +1728,17 @@ async function exportLegHeaderCard(btnId, mode) {
     // Compute stats for export card
     const expStats = d.yearly_stats || {};
     const expTrailingAus = d.trailing_ausente || 0;
-    const expActiveYears = Object.keys(expStats).filter(y => {
-        const s = expStats[y];
-        return (s.AFIRMATIVO||0)+(s.NEGATIVO||0)+(s.ABSTENCION||0)+(s.AUSENTE||0) >= 5;
-    });
-    let expTotalV = 0, expTotalPresent = 0;
-    for (const y of expActiveYears) {
+    // Use ALL years (no filtering) to match ranking calculation
+    // Use same formula as Python: total_present = total_votes - total_ausente
+    let expTotalV = 0, expTotalAusente = 0;
+    for (const y of Object.keys(expStats)) {
         const s = expStats[y];
         expTotalV       += (s.total || 0);
-        expTotalPresent += (s.AFIRMATIVO||0) + (s.NEGATIVO||0) + (s.ABSTENCION||0);
+        expTotalAusente += (s.AUSENTE || 0);
     }
     const expEffV = expTotalV - expTrailingAus;
+    const expEffAusente = expTotalAusente - expTrailingAus;
+    const expTotalPresent = expEffV - expEffAusente;
     const expPresText   = expEffV > 0 ? Math.round(expTotalPresent / expEffV * 100) + "\u00a0%" : "N/A";
     const expTermsCount = (d.terms || []).length;
 

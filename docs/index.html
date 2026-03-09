@@ -306,11 +306,22 @@
             <div class="ranking-controls">
                 <div class="ranking-controls-row">
                     <div class="filter-group">
+                        <label for="ra-coalition">Coalición por la que fue votado/a</label>
+                        <select id="ra-coalition">
+                            <option value="">Todas</option>
+                            <option value="PJ">PJ / UxP</option>
+                            <option value="UCR">UCR / ARI</option>
+                            <option value="JxC">JxC / PRO / UCR</option>
+                            <option value="LLA">LLA / PRO</option>
+                            <option value="OTROS">Otros</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <label for="ra-sort">Ordenar por</label>
                         <select id="ra-sort">
                             <option value="vpj">Votos con PJ</option>
                             <option value="vucr">Votos con UCR</option>
-                            <option value="vpro">Votos con PRO</option>
+                            <option value="vpro">Votos con JxC</option>
                             <option value="vlla">Votos con LLA</option>
                         </select>
                     </div>
@@ -327,17 +338,6 @@
                             <option value="">Todas</option>
                             <option value="diputados">Diputados</option>
                             <option value="senadores">Senadores</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="ra-coalition">Coalición por la que fue votado/a</label>
-                        <select id="ra-coalition">
-                            <option value="">Todas</option>
-                            <option value="PJ">PJ / UxP</option>
-                            <option value="UCR">UCR / ARI</option>
-                            <option value="PRO">JxC / PRO / UCR</option>
-                            <option value="LLA">LLA / PRO</option>
-                            <option value="OTROS">Otros</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -360,7 +360,7 @@
                             <th>Partido/Alianza</th>
                             <th class="ranking-sortable" data-col="vpj">PJ</th>
                             <th class="ranking-sortable" data-col="vucr">UCR</th>
-                            <th class="ranking-sortable" data-col="vpro">PRO</th>
+                            <th class="ranking-sortable" data-col="vpro">JxC</th>
                             <th class="ranking-sortable" data-col="vlla">LLA</th>
                         </tr>
                     </thead>
