@@ -609,10 +609,29 @@ function renderRankingTable(prefix, sortCol, asc, columns, cellRenderer, dataSou
     let page_ref = prefix === "rv" ? { get: () => rvPage, set: v => { rvPage = v; } }
                                     : { get: () => raPage, set: v => { raPage = v; } };
 
+    // For the alignment ranking (ra), map grouped coalition filters to actual co_electoral values
+    // JxC includes PRO, UCR, and JxC; LLA includes LLA and PRO (2024+)
+    const raCoalitionMap = {
+        "JxC": ["JxC", "PRO", "UCR"],
+        "LLA": ["LLA", "PRO"],
+        "PJ": ["PJ"],
+        "UCR": ["UCR"],
+        "OTROS": ["OTROS"],
+    };
+
     let filtered = (dataSource || legislatorsData).filter(l => {
         if (l.tv < 100) return false;
         if (chamberFilter && !l.c.includes(chamberFilter)) return false;
-        if (coalitionFilter && l.co !== coalitionFilter) return false;
+        if (coalitionFilter) {
+            if (prefix === "ra") {
+                // For alignment ranking, check if l.co matches any of the mapped values
+                const allowedCos = raCoalitionMap[coalitionFilter] || [coalitionFilter];
+                if (!allowedCos.includes(l.co)) return false;
+            } else {
+                // For votes ranking, exact match
+                if (l.co !== coalitionFilter) return false;
+            }
+        }
         return true;
     });
 
