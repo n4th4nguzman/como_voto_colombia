@@ -280,7 +280,7 @@ function onLawSearchInput() {
     });
 }
 
-function selectLaw(law) {
+function selectLaw(law, updateUrl = true) {
     currentSelectedLaw = law;
     const wrapper = document.getElementById("law-detail-wrapper");
     wrapper.classList.remove("hidden");
@@ -309,6 +309,15 @@ function selectLaw(law) {
         body.innerHTML = `<div class="law-detail-empty">No hay datos de votación disponibles.</div>`;
     } else {
         body.innerHTML = vs.map((v, vi) => renderLawVotacion(v, vi, vs.length)).join("");
+    }
+
+    // Update URL with law parameter
+    if (updateUrl) {
+        const lawKey = encodeURIComponent(law.n || "");
+        const params = new URLSearchParams();
+        params.set("ley", lawKey);
+        const url = `${window.location.pathname}?${params.toString()}`;
+        window.history.pushState({ law: law.n }, "", url);
     }
 
     // Scroll into view
@@ -436,8 +445,10 @@ function shareTwitterLaw() {
     if (!currentSelectedLaw) return;
     const name = currentSelectedLaw.n || "una ley";
     const text = `Mirá cómo votó cada bloque "${name}" en el Congreso Argentino 🗳️`;
+    // Include law parameter in shared URL
+    const lawKey = encodeURIComponent(currentSelectedLaw.n || "");
     const base = window.location.origin + window.location.pathname;
-    const url = encodeURIComponent(base);
+    const url = encodeURIComponent(`${base}?ley=${lawKey}`);
     const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${url}`;
     window.open(tweetUrl, "_blank", "width=600,height=400");
 }
@@ -2441,6 +2452,17 @@ function parseArgDate(dateStr) {
             if (lawYearFilter) {
                 lawYearFilter.innerHTML = '<option value="">Todos</option>' +
                     years.map(y => `<option value="${y}">${y}</option>`).join("");
+            }
+            
+            // Check for law parameter in URL and load it
+            const urlParams = new URLSearchParams(window.location.search);
+            const lawParam = urlParams.get("ley");
+            if (lawParam) {
+                const decodedLaw = decodeURIComponent(lawParam);
+                const matchedLaw = lawsData.find(l => l.n === decodedLaw);
+                if (matchedLaw) {
+                    selectLaw(matchedLaw, false);  // Don't update URL again
+                }
             }
         } else {
             console.warn("Could not load laws_detail.json", lawResp.status);
