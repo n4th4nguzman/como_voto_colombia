@@ -203,19 +203,65 @@ def _parse_vote_date(date_value: str) -> datetime:
             return datetime.min
 
 
-def _count_trailing_ausente(votes: list[dict]) -> int:
-    """Count AUSENTE votes that happen after the last active (non-AUSENTE) vote."""
+def _count_trailing_ausente(
+    votes: list[dict],
+    terms: list[dict] | None = None,
+) -> int:
+    """Count AUSENTE votes that occur after the legislator's name no longer
+    appears in votacion data.
+
+    New logic: For each term (mandato), check if the legislator's name appears
+    in votaciones through the end of their term. If their last vote (of any type)
+    is an AUSENTE vote, it means they were still in office but absent - this
+    should NOT count as trailing. Only count AUSENTE votes that occur after the
+    legislator's name completely disappears from votacion data.
+
+    The votes list contains all votes where the legislator's name appears
+    (including AUSENTE). So if the last vote in the list is AUSENTE, the
+    legislator was still in office - no trailing ausente.
+    """
     if not votes:
         return 0
-    non_ausente = [vote for vote in votes if vote.get("v") != "AUSENTE"]
-    if not non_ausente:
+
+    from datetime import datetime
+
+    def _parse_date(d: str) -> datetime:
+        try:
+            return datetime.strptime(d.split(" - ")[0], "%d/%m/%Y")
+        except (ValueError, AttributeError):
+            try:
+                return datetime.strptime(d[:10], "%d/%m/%Y")
+            except (ValueError, AttributeError):
+                return datetime.min
+
+    # Sort votes by date to find the last vote where the legislator's name appears
+    sorted_votes = sorted(votes, key=lambda v: _parse_date(v.get("d", "")))
+    if not sorted_votes:
         return 0
-    last_active_dt = max(_parse_vote_date(vote.get("d", "")) for vote in non_ausente)
-    return sum(
-        1
-        for vote in votes
-        if vote.get("v") == "AUSENTE" and _parse_vote_date(vote.get("d", "")) > last_active_dt
+
+    # Get the last vote date where the legislator's name appears
+    last_vote = sorted_votes[-1]
+    last_present_date = _parse_date(last_vote.get("d", ""))
+    last_vote_type = last_vote.get("v", "")
+
+    # If the last vote is AUSENTE, the legislator was still in office
+    # (their name was recorded). Don't count any trailing ausente.
+    # This is the key change: AUSENTE means they were still in the roster.
+    if last_vote_type == "AUSENTE":
+        return 0
+
+    # If the last vote is not AUSENTE, use the old logic as fallback:
+    # count AUSENTE votes after the last non-AUSENTE vote
+    non_ausente = [v for v in votes if v.get("v") != "AUSENTE"]
+    if not non_ausente:
+        return 0  # Never attended — don't exclude anything
+
+    last_active_dt = max(_parse_date(v.get("d", "")) for v in non_ausente)
+    trailing = sum(
+        1 for v in votes
+        if v.get("v") == "AUSENTE" and _parse_date(v.get("d", "")) > last_active_dt
     )
+    return trailing
 
 
 # ---------------------------------------------------------------------------
@@ -839,7 +885,7 @@ def generate_site_data(legislators: dict, law_groups: dict) -> None:
         votes_lla = _sum_aligned("LLA")
 
         total_votes = sum(stats.get("total", 0) for stats in leg["yearly_stats"].values())
-        trailing_ausente = _count_trailing_ausente(leg.get("votes", []))
+        trailing_ausente = _count_trailing_ausente(leg.get("votes", []), leg.get("_terms") or terms)
 
         total_ausente = sum(stats.get("AUSENTE", 0) for stats in leg["yearly_stats"].values())
         total_abstencion = sum(stats.get("ABSTENCION", 0) for stats in leg["yearly_stats"].values())
@@ -1025,7 +1071,7 @@ def generate_site_data(legislators: dict, law_groups: dict) -> None:
             "province": leg["province"],
             "coalition": detail_coalition,
             "yearly_stats": leg["yearly_stats"],
-            "trailing_ausente": _count_trailing_ausente(leg.get("votes", [])),
+            "trailing_ausente": _count_trailing_ausente(leg.get("votes", []), leg_terms),
             "yearly_alignment": yearly_alignment_pct,
             "alignment": {coal: compute_weighted_alignment(leg["yearly_alignment"], coal) for coal in ["PJ", "UCR", "PRO", "JxC", "LLA"]},
             "era_alignment": {
