@@ -358,6 +358,39 @@ _ACCENT_MAP = {
     "cordoba": "Córdoba",
     "dialogo": "Diálogo",
 }
+
+# Party code to party name mapping
+_PARTY_CODE_NAMES = {
+    "PJ": "Partido Justicialista",
+    "UCR": "Unión Cívica Radical",
+    "LLA": "La Libertad Avanza",
+    "CC-ARI": "Coalición Cívica ARI",
+    "CC": "Coalición Cívica",
+    "ARI": "Afirmación para una República Igualitaria",
+    "FCC": "Frente Cívico de Córdoba",
+    "AP": "Acción por la República",
+    "MID": "Movimiento de Integración y Desarrollo",
+    "PD": "Partido Demócrata",
+    "PL": "Partido Liberal",
+    "FE": "Fuerza Entrerriana",
+    "UCeDé": "Unión del Centro Democrático",
+    "UCyB": "Unión Celeste y Blanca",
+    "CaG": "Cambio y Gloria",
+    "Celeste": "Lista Celeste",
+    "Cumplir": "Cumplir",
+    "1RN": "Primero Río Negro",
+    "PRFTU": "Partido Renovador Federal de Tucumán",
+    "LTP": "Lealtad y Trabajo por la Provincia",
+    "PLCo": "Partido Liberal de Corrientes",
+    "ADN": "ADN",
+    "3P": "Tercera Posición",
+    "FL": "Fuerza Liberal",
+    "UNITE": "Unite",
+    "PD - VyF": "Partido Demócrata - Viento y Fuego",
+    "Activar": "Activar",
+    "PRO": "Propuesta Republicana",  # Party name (not coalition)
+}
+
 _UCR_SPLIT_KW = (
     "ucr",
     "radical",
@@ -465,23 +498,41 @@ def _normalize_bloc_display(name: str) -> str:
 
 
 def _era_coalition(base_coalition: str, term_start_year: int) -> str:
+    """Map electoral coalition to display coalition based on era.
+
+    - PJ: always PJ
+    - UCR: UCR before 2015, JxC during 2015-2023 (as part of Juntos por el Cambio),
+           OTROS from 2024+ (UCR ran separately, not part of major coalition)
+    - JxC: JxC during 2015-2023 (Cambiemos/Juntos por el Cambio era)
+    - PRO: OTROS (PRO was never a standalone major coalition; was part of JxC 2015-2023)
+    - LLA: always LLA
+    """
     if base_coalition == "PJ":
         return "PJ"
     if base_coalition == "UCR":
         if term_start_year < 2015:
             return "UCR"
         if term_start_year < 2024:
-            return "PRO"
-        return "OTROS"
-    if base_coalition == "PRO":
+            return "JxC"  # UCR was part of Juntos por el Cambio
+        return "OTROS"  # 2024+: UCR ran separately (not part of major coalition)
+    if base_coalition == "JxC":
         if term_start_year < 2015:
-            return "OTROS"
+            return "OTROS"  # JxC didn't exist before 2015
         if term_start_year < 2024:
-            return "PRO"
-        return "LLA"
+            return "JxC"
+        return "LLA"  # 2024+: most JxC members joined LLA
+    if base_coalition == "PRO":
+        return "OTROS"  # PRO was never a standalone major coalition
     if base_coalition == "LLA":
         return "LLA"
     return "OTROS"
+
+
+def _get_party_name(party_code: str) -> str:
+    """Get the full party name from a party code."""
+    if not party_code:
+        return ""
+    return _PARTY_CODE_NAMES.get(party_code, party_code)
 
 
 def _classify_bloc_for_term(bloc_name: str, year: int) -> str:
@@ -499,7 +550,7 @@ def _classify_bloc_for_term(bloc_name: str, year: int) -> str:
         if coalition == "PRO":
             if any(keyword in key for keyword in _UCR_SPLIT_KW):
                 return "UCR"
-            return "PRO"
+            return "OTROS"  # PRO was never a standalone major coalition
         if coalition == "UCR":
             return "UCR"
         if coalition in ("PJ", "LLA"):
@@ -511,14 +562,14 @@ def _classify_bloc_for_term(bloc_name: str, year: int) -> str:
     if any(keyword in key for keyword in _UCR_SPLIT_KW):
         return "UCR"
     if any(keyword in key for keyword in _PRO_TERM_KW):
-        return "PRO"
+        return "OTROS"  # PRO was never a standalone major coalition
     if any(keyword in key for keyword in _LLA_TERM_KW):
         return "LLA"
 
     fallback = classify_bloc_mapped(bloc_name)
     if fallback == "PRO" and any(keyword in key for keyword in _UCR_SPLIT_KW):
         return "UCR"
-    if fallback in ("PJ", "PRO", "LLA"):
+    if fallback in ("PJ", "LLA"):
         return fallback
     return "OTROS"
 
@@ -575,6 +626,7 @@ def _load_election_index() -> None:
                         "coalition": entry["coalition"],
                         "name": entry["name"],
                         "party_code": entry.get("party_code"),
+                        "alliance": entry.get("alliance", ""),
                         "suplente": entry.get("suplente", False),
                     }
                 )
@@ -636,6 +688,7 @@ def _match_legislator_to_election(
         return {
             "coalition": best_match["coalition"],
             "party_code": best_match.get("party_code"),
+            "alliance": best_match.get("alliance", ""),
         }
     return None
 
@@ -691,32 +744,57 @@ def compute_terms(leg: dict, min_votes: int = 5) -> list[dict]:
                 election_year = _find_election_year(min(sub))
                 name_key = leg.get("name_key", "")
                 electoral_coalition = None
+                electoral_alliance = None
+                electoral_party_code = None
                 if election_year:
                     match = _match_legislator_to_election(name_key, dominant_province, chamber, election_year)
                     if match:
                         if match.get("coalition") and match["coalition"] != "OTROS":
                             electoral_coalition = match["coalition"]
-                        elif match.get("party_code") and match["party_code"] != "OTROS":
+                        elif match.get("party_code") and match["party_code"] in ("PJ", "UCR", "LLA"):
+                            # Only use party_code as coalition for major parties
                             electoral_coalition = match["party_code"]
+                        electoral_alliance = match.get("alliance", "")
+                        electoral_party_code = match.get("party_code", "")
                 if not electoral_coalition:
                     base = _classify_bloc_for_term(_normalize_bloc_display(dominant_bloc), max(sub))
                     electoral_coalition = _era_coalition(base, max(sub))
+
+                # Use party name when available, otherwise alliance, otherwise dominant bloc
+                if electoral_party_code:
+                    display_alliance = _get_party_name(electoral_party_code)
+                elif electoral_alliance:
+                    display_alliance = electoral_alliance
+                else:
+                    display_alliance = _normalize_bloc_display(dominant_bloc)
 
                 terms.append(
                     {
                         "ch": chamber,
                         "yf": min(sub),
                         "yt": max(sub),
-                        "b": _normalize_bloc_display(dominant_bloc),
+                        "b": display_alliance,
                         "p": dominant_province,
                         "co_electoral": electoral_coalition,
+                        "alliance": electoral_alliance if electoral_alliance else None,
                     }
                 )
 
     terms.sort(key=lambda term: (term["yf"], term["ch"]))
+    
+    # Count election match statistics
+    matched = sum(1 for t in terms if t.get("co_electoral"))
+    unmatched = len(terms) - matched
+    if unmatched > 0:
+        log.info(f"  Terms without election match: {unmatched}/{len(terms)}")
+    
     for term in terms:
-        base = _classify_bloc_for_term(term["b"], term["yt"])
-        term["co"] = _era_coalition(base, term["yt"])
+        # Use co_electoral when available (from election match), otherwise fall back to bloc-based classification
+        if term.get("co_electoral"):
+            term["co"] = term["co_electoral"]
+        else:
+            base = _classify_bloc_for_term(term["b"], term["yt"])
+            term["co"] = _era_coalition(base, term["yt"])
     return terms
 
 
@@ -729,12 +807,19 @@ def compute_per_coalition_alignment(
     """Alignment vote sums restricted to years served under each coalition."""
     coalition_years: dict[str, set[int]] = {}
     coalition_bloc: dict[str, str] = {}
+    coalition_yf_yt: dict[str, tuple[int, int]] = {}
     for term in terms:
         coalition = term.get("co_electoral") or term["co"]
         coalition_years.setdefault(coalition, set())
         for year in range(term["yf"], term["yt"] + 1):
             coalition_years[coalition].add(year)
         coalition_bloc[coalition] = term["b"]
+        # Track min/max year for each coalition
+        if coalition not in coalition_yf_yt:
+            coalition_yf_yt[coalition] = (term["yf"], term["yt"])
+        else:
+            prev_yf, prev_yt = coalition_yf_yt[coalition]
+            coalition_yf_yt[coalition] = (min(prev_yf, term["yf"]), max(prev_yt, term["yt"]))
 
     result: dict[str, dict] = {}
     for coalition, years in coalition_years.items():
@@ -769,6 +854,10 @@ def compute_per_coalition_alignment(
                 sums["tv"] += stats.get("total", 0)
         if has_any or sums["tv"] > 0:
             sums["b"] = _normalize_bloc_display(coalition_bloc.get(coalition, ""))
+            yf, yt = coalition_yf_yt.get(coalition, (None, None))
+            if yf is not None and yt is not None:
+                sums["yf"] = yf
+                sums["yt"] = yt
             result[coalition] = sums
     return result
 
@@ -906,9 +995,9 @@ def generate_site_data(legislators: dict, law_groups: dict) -> None:
         by_co = compute_per_coalition_alignment(terms, leg["yearly_alignment"], leg["yearly_stats"])
 
         if terms:
-            latest_year = max(term["yt"] for term in terms)
-            current_bloc_base = _classify_bloc_for_term(_normalize_bloc_display(leg["bloc"]), latest_year)
-            coalition_display = _era_coalition(current_bloc_base, latest_year)
+            # Use the electoral coalition from the most recent term
+            latest_term = max(terms, key=lambda t: t["yt"])
+            coalition_display = latest_term.get("co_electoral") or latest_term.get("co")
         else:
             coalition_display = leg["coalition"]
 
@@ -1055,7 +1144,9 @@ def generate_site_data(legislators: dict, law_groups: dict) -> None:
 
         leg_terms = leg.get("_terms") or compute_terms(leg)
         if leg_terms:
-            detail_coalition = leg_terms[-1]["co"]
+            # Use the electoral coalition from the most recent term
+            latest_term = max(leg_terms, key=lambda t: t["yt"])
+            detail_coalition = latest_term.get("co_electoral") or latest_term.get("co")
         else:
             detail_coalition = leg["coalition"]
 

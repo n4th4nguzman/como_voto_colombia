@@ -118,6 +118,32 @@ COMMON_LAW_NAMES = [
     # --- Education & science ---
     (["financiamiento universitario"], "Financiamiento Universitario"),
     (["educación sexual", "educacion sexual"], "Educacion Sexual"),
+    # Specific science/technology laws (must come before general "Financiamiento Cientifico")
+    (
+        [
+            "emergencia y financiamiento del sistema nacional de ciencia, tecnología e innovación",
+            "emergencia y financiamiento del sistema nacional de ciencia, tecnologia e innovacion",
+            "emergencia y financiamiento del sistema nacional de ciencia",
+        ],
+        "Emergencia y Financiamiento Científico",
+    ),
+    (
+        [
+            "plan nacional de ciencia, tecnología e innovación 2030",
+            "plan nacional de ciencia, tecnologia e innovacion 2030",
+            "plan nacional de ciencia 2030",
+        ],
+        "Plan Nacional de Ciencia",
+    ),
+    (
+        [
+            "ley de financiamiento del sist. nacional de ciencia, tecnología e innovación",
+            "ley de financiamiento del sist. nacional de ciencia, tecnologia e innovacion",
+            "ley de financiamiento del sistema nacional de ciencia",
+            "ley de financiamiento del sist. nacional de ciencia",
+        ],
+        "Ley de Financiamiento Científico",
+    ),
     (
         [
             "financiamiento de la ciencia",
