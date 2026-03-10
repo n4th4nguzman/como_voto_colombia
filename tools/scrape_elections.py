@@ -127,7 +127,7 @@ _PARTY_CODE_NAMES = {
     "RU": "RU",
     "SER": "SER",
     "SST": "SST",
-    "SNU": "SNU",
+    "SNU": "Salta Nos Une",
     "BAPT": "BAPT",
     "CHUSOTO": "CHUSOTO",
     "CET": "CET",
@@ -136,7 +136,7 @@ _PARTY_CODE_NAMES = {
     "FE": "Fuerza Entrerriana",
     "FEF": "FEF",
     "FTNP": "FTNP",
-    "FPG": "FPG",
+    "FPG": "Frente Patria Grande",
     "LTP": "Lealtad y Trabajo por la Provincia",
     "LDS": "LDS",
     "MNA": "MNA",
@@ -146,7 +146,7 @@ _PARTY_CODE_NAMES = {
     "PARES": "PARES",
     "PAYS": "PAYS",
     "PCP": "PCP",
-    "PCS": "PCS",
+    "PCS": "Partido de la Concordia Social",
     "PDV": "Partido de la Victoria",
     "PD-VyF": "Partido Demócrata - Viento y Fuego",
     "PRFTU": "Partido Renovador Federal de Tucumán",
@@ -175,6 +175,7 @@ _PARTY_CODE_NAMES = {
     "UCEDE": "Unión del Centro Democrático",
     "UCEDÉ": "Unión del Centro Democrático",
     "FREPASO": "FREPASO",
+    "PJS": "Partido por la Justicia Social",
 }
 
 
@@ -405,7 +406,7 @@ def classify_party_code(code: str, year: int) -> str | None:
              "MNA", "NP", "P3P", "PAIS", "PARES", "PAYS",
              "PCP", "PCS", "PDV", "PD-VYF", "PRFTU",
              "PARTE", "PDD", "PDF", "PROCOR", "PYT", "USPV",
-             "UPL", "1RN", "3P", "ERF", "CP",
+             "UPL", "1RN", "3P", "ERF", "CP", "PJS",
              # Full party names
              "PARTIDO SOCIALISTA", "PARTIDO SOCIALISTA AUTÉNTICO", "PARTIDO SOCIALISTA AUTENTICO",
              "PARTIDO SOCIALISTA POPULAR", "PARTIDO SOCIALISTA DEMOCRÁTICO", "PARTIDO SOCIALISTA DEMOCRATICO",
@@ -421,7 +422,9 @@ def classify_party_code(code: str, year: int) -> str | None:
              "PARTIDO DEMOCRATA - VIENTO Y FUEGO", "PARTIDO RENOVADOR FEDERAL DE TUCUMÁN",
              "PARTIDO RENOVADOR FEDERAL DE TUCUMAN", "LEALTAD Y TRABAJO POR LA PROVINCIA",
              "PARTIDO LIBERAL DE CORRIENTES", "PRIMERO RÍO NEGRO", "PRIMERO RIO NEGRO",
-             "FUERZA LIBERAL", "UNITE", "ACTIVAR"):
+             "FUERZA LIBERAL", "UNITE", "ACTIVAR",
+             "PARTIDO DE LA CONCORDIA SOCIAL", "SALTA NOS UNE", "PARTIDO POR LA JUSTICIA SOCIAL",
+             "FRENTE PATRIA GRANDE"):
         return "OTROS"
 
     # Not recognized — let caller fall back to alliance classification
