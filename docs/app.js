@@ -319,7 +319,7 @@ function renderLawVotacion(v, idx, totalCount) {
     const coalitions = [
         { key: "pj",  label: "PJ / UxP",  cls: "bar-pj" },
         { key: "ucr", label: "UCR",       cls: "bar-ucr" },
-        { key: "pro", label: "PRO",       cls: "bar-pro" },
+        { key: "pro", label: "JxC",       cls: "bar-pro" },
         { key: "lla", label: "LLA",       cls: "bar-lla" },
         { key: "cc",  label: "CC - ARI",  cls: "bar-cc" },
         { key: "oth", label: "Otros",     cls: "bar-oth" },
@@ -450,7 +450,7 @@ const _votesYearCache = {};   // { year: { n: [...], v: {...} } }
 const _votesYearPromise = {}; // { year: Promise }
 
 const PARTY_LABELS = {
-    pj: "PJ / UxP", ucr: "UCR", pro: "PRO",
+    pj: "PJ / UxP", ucr: "UCR", pro: "JxC",
     lla: "LLA", cc: "CC - ARI", oth: "Otros",
 };
 const VOTE_TYPE_LABELS = ["Afirmativo", "Negativo", "Abstención", "Ausente"];
@@ -610,13 +610,16 @@ function renderRankingTable(prefix, sortCol, asc, columns, cellRenderer, dataSou
                                     : { get: () => raPage, set: v => { raPage = v; } };
 
     // For the alignment ranking (ra), map grouped coalition filters to actual co_electoral values
-    // JxC includes PRO, UCR, and JxC; LLA includes LLA and PRO (2024+)
+    // JxC includes PRO and JxC (2015-2023 Cambiemos/Juntos por el Cambio era)
+    // LLA includes LLA and PRO (2024+ PRO merged into LLA)
+    // UCR only includes mandates up to 2013 (before UCR joined JxC in 2015)
+    // UCR 2024+ mandates are classified as OTROS
     const raCoalitionMap = {
-        "JxC": ["JxC", "PRO", "UCR"],
+        "JxC": ["JxC", "PRO"],
         "LLA": ["LLA", "PRO"],
         "PJ": ["PJ"],
-        "UCR": ["UCR"],
-        "OTROS": ["OTROS"],
+        "UCR": ["UCR"],  // Only mandates up to 2013 (filtered below)
+        "OTROS": ["OTROS", "UCR"],  // Includes UCR 2024+ and other small parties
     };
 
     let filtered = (dataSource || legislatorsData).filter(l => {
@@ -627,6 +630,21 @@ function renderRankingTable(prefix, sortCol, asc, columns, cellRenderer, dataSou
                 // For alignment ranking, check if l.co matches any of the mapped values
                 const allowedCos = raCoalitionMap[coalitionFilter] || [coalitionFilter];
                 if (!allowedCos.includes(l.co)) return false;
+                
+                // Special handling for UCR filter: only show mandates up to 2013
+                if (coalitionFilter === "UCR" && l.by_co) {
+                    const ucrData = l.by_co["UCR"];
+                    if (ucrData && ucrData.yf && ucrData.yf >= 2014) {
+                        return false;  // Skip UCR mandates starting 2014+
+                    }
+                }
+                
+                // Special handling for OTROS filter: exclude UCR mandates (they have their own filter)
+                if (coalitionFilter === "OTROS" && l.by_co && l.by_co["UCR"]) {
+                    // Keep only if the mandate is not UCR
+                    const hasNonUcrCo = Object.keys(l.by_co).some(co => co !== "UCR");
+                    if (!hasNonUcrCo) return false;
+                }
             } else {
                 // For votes ranking, exact match
                 if (l.co !== coalitionFilter) return false;
@@ -726,7 +744,7 @@ function renderRankingVotes() {
     );
 }
 
-const COALITION_LABELS = { PJ: "PJ / UxP", UCR: "UCR / ARI", PRO: "JxC / PRO / UCR", LLA: "LLA / PRO", OTROS: "Otros" };
+const COALITION_LABELS = { PJ: "PJ / UxP", UCR: "UCR / ARI", PRO: "JxC", LLA: "LLA", OTROS: "Otros" };
 
 function renderRankingAlignment() {
     const fmt = v => v !== null && v !== undefined ? v : "–";
@@ -748,15 +766,21 @@ function renderRankingAlignment() {
                 vpro: vals.vpro,
                 vlla: vals.vlla,
                 tv: vals.tv,
+                yf: vals.yf,
+                yt: vals.yt,
             });
         }
     }
     renderRankingTable("ra", raSortCol, raSortAsc,
         ["vpj", "vucr", "vpro", "vlla"],
-        l => `<td class="ranking-cell-num">${fmt(l.vpj)}</td>
+        l => {
+            const period = (l.yf && l.yt) ? `${l.yf}–${l.yt}` : "–";
+            return `<td class="ranking-cell-num">${fmt(l.vpj)}</td>
               <td class="ranking-cell-num">${fmt(l.vucr)}</td>
               <td class="ranking-cell-num">${fmt(l.vpro)}</td>
-              <td class="ranking-cell-num">${fmt(l.vlla)}</td>`,
+              <td class="ranking-cell-num">${fmt(l.vlla)}</td>
+              <td class="ranking-cell-num">${period}</td>`;
+        },
         expanded
     );
 }
@@ -764,7 +788,7 @@ function renderRankingAlignment() {
 // Column label maps for export titles
 const RANKING_COL_LABELS = {
     tv: "Total de Votaciones", pres: "Presentismo", aus: "Ausencias", abst: "Abstenciones",
-    vpj: "Votos con PJ", vucr: "Votos con UCR", vpro: "Votos con PRO", vlla: "Votos con LLA",
+    vpj: "Votos con PJ", vucr: "Votos con UCR", vpro: "Votos con JxC", vlla: "Votos con LLA",
 };
 
 function buildRankingExportTitle(prefix) {
@@ -1060,9 +1084,9 @@ function renderLegislatorDetail(data) {
         { label: "1993–2014", key: "1993-2014",
           opp: { key: "UCR", label: "UCR / ARI",       cls: "alignment-ucr" } },
         { label: "2015–2023", key: "2015-2023",
-          opp: { key: "PRO", label: "JxC / PRO / UCR", cls: "alignment-pro" } },
+          opp: { key: "PRO", label: "JxC",             cls: "alignment-pro" } },
         { label: "2024–2026", key: "2024-2026",
-          opp: { key: "LLA", label: "LLA / PRO",        cls: "alignment-lla" } },
+          opp: { key: "LLA", label: "LLA",             cls: "alignment-lla" } },
     ];
 
     const eraAl = data.era_alignment || {};
@@ -1145,16 +1169,18 @@ function renderLegislatorDetail(data) {
             const effTermAusente = termAusente - termTrail;
             const effTermPresent = effTermV - effTermAusente;
             const tPct = effTermV > 0 ? Math.round(effTermPresent / effTermV * 100) + "\u00a0%" : "N/A";
+            const allianceDisplay = t.alliance ? escapeHtml(t.alliance) : "—";
             return `<tr>
                 <td><span class="badge ${chCls(t.ch)}">${chLabel(t.ch)}</span></td>
                 <td>${period}</td>
                 <td>${escapeHtml(t.p || "")}</td>
                 <td>${escapeHtml(t.b)}</td>
+                <td>${allianceDisplay}</td>
                 <td>${tPct}</td>
             </tr>`;
         }).join("");
         termsList.innerHTML = `<table class="leg-terms-table">
-            <thead><tr><th>C\u00e1mara</th><th>Per\u00edodo</th><th>Provincia</th><th>Partido</th><th>Presentismo</th></tr></thead>
+            <thead><tr><th>C\u00e1mara</th><th>Per\u00edodo</th><th>Provincia</th><th>Partido</th><th>Alianza</th><th>Presentismo</th></tr></thead>
             <tbody>${rows}</tbody>
         </table>`;
     } else {

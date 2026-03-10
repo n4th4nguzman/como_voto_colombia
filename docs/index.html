@@ -100,8 +100,8 @@
                         <option value="">Todas</option>
                         <option value="PJ">PJ / Unión por la Patria</option>
                         <option value="UCR">UCR / ARI</option>
-                        <option value="PRO">JxC / PRO / UCR</option>
-                        <option value="LLA">LLA / PRO</option>
+                        <option value="JxC">JxC / PRO / UCR</option>
+                        <option value="LLA">LLA</option>
                         <option value="OTROS">Otros</option>
                     </select>
                 </div>
@@ -258,8 +258,8 @@
                             <option value="">Todas</option>
                             <option value="PJ">PJ / UxP</option>
                             <option value="UCR">UCR / ARI</option>
-                            <option value="PRO">JxC / PRO / UCR</option>
-                            <option value="LLA">LLA / PRO</option>
+                            <option value="JxC">JxC / PRO / UCR</option>
+                            <option value="LLA">LLA</option>
                             <option value="OTROS">Otros</option>
                         </select>
                     </div>
@@ -297,7 +297,7 @@
                 <div class="ranking-title-row" id="ranking-afinidad">
                     <div>
                         <h2 class="section-title">📊 Ranking de mandatos por Afinidad Política</h2>
-                        <p class="section-desc">Cada fila corresponde a uno o más mandatos por legislador, agrupado según la coalición a la que pertenecía el partido o alianza cuya lista integró el legislador en la elección. Las cantidades de votos muestran afinidad con el voto mayoritario de cada coalición (sólo para votaciones divididas).</p>
+                        <p class="section-desc">Cada fila corresponde a uno o más mandatos por legislador, agrupado según la coalición a la que pertenecía el partido o alianza cuya lista integró el legislador en la elección. Las cantidades de votos muestran afinidad con las dos coaliciones mayoritarias de cada período para votaciones divididas. Las coaliciones son PJ (1993-2026), UCR (1983-2014), JxC (2015-2023) y LLA (2024-2026).</p>
                     </div>
                 <div class="ranking-export-row">
                     <button class="btn-share" id="btn-copy-ra" title="Copiar imagen al portapapeles">
@@ -323,7 +323,7 @@
                             <option value="PJ">PJ / UxP</option>
                             <option value="UCR">UCR / ARI</option>
                             <option value="JxC">JxC / PRO / UCR</option>
-                            <option value="LLA">LLA / PRO</option>
+                            <option value="LLA">LLA</option>
                             <option value="OTROS">Otros</option>
                         </select>
                     </div>
@@ -368,11 +368,12 @@
                         <tr>
                             <th>#</th>
                             <th>Legislador/a</th>
-                            <th>Partido/Alianza</th>
+                            <th>Partido</th>
                             <th class="ranking-sortable" data-col="vpj">PJ</th>
                             <th class="ranking-sortable" data-col="vucr">UCR</th>
                             <th class="ranking-sortable" data-col="vpro">JxC</th>
                             <th class="ranking-sortable" data-col="vlla">LLA</th>
+                            <th>Período</th>
                         </tr>
                     </thead>
                     <tbody id="ra-tbody"></tbody>

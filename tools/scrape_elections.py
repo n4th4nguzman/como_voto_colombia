@@ -43,6 +43,152 @@ WIKI_API = "https://es.wikipedia.org/w/api.php"
 RATE_LIMIT = 1.0
 
 # ---------------------------------------------------------------------------
+# Party code normalization
+# ---------------------------------------------------------------------------
+
+# Map short party codes to full party names
+_PARTY_CODE_NAMES = {
+    "PS": "Partido Socialista",
+    "PO": "Partido Obrero",
+    "PJ": "Partido Justicialista",
+    "PTS": "Partido de los Trabajadores Socialistas",
+    "FR": "Frente Renovador",
+    "P3P": "Partido Tercera Posición",
+    "IS": "Izquierda Socialista",
+    "AR": "Acción por la República",
+    "PB": "Partido Bloquista",
+    "NE": "Nuevo Encuentro",
+    "PDV": "Partido de la Victoria",
+    "FG": "Frente Grande",
+    "PSD": "Partido Socialista Democrático",
+    "UCR": "Unión Cívica Radical",
+    "PRO": "Propuesta Republicana",
+    "LLA": "La Libertad Avanza",
+    "CC-ARI": "Coalición Cívica ARI",
+    "CC": "Coalición Cívica",
+    "FCC": "Frente Cívico de Córdoba",
+    "AP": "Acción por la República",
+    "MID": "Movimiento de Integración y Desarrollo",
+    "PD": "Partido Demócrata",
+    "PL": "Partido Liberal",
+    "FE": "Fuerza Entrerriana",
+    "UCeDé": "Unión del Centro Democrático",
+    "UCyB": "Unión Celeste y Blanca",
+    "CaG": "Cambio y Gloria",
+    "Celeste": "Lista Celeste",
+    "Cumplir": "Cumplir",
+    "1RN": "Primero Río Negro",
+    "PRFTU": "Partido Renovador Federal de Tucumán",
+    "LTP": "Lealtad y Trabajo por la Provincia",
+    "PLCo": "Partido Liberal de Corrientes",
+    "ADN": "ADN",
+    "3P": "Tercera Posición",
+    "FL": "Fuerza Liberal",
+    "UNITE": "Unite",
+    "PD - VyF": "Partido Demócrata - Viento y Fuego",
+    "Activar": "Activar",
+    "CxC": "CxC",
+    "UCyD": "Unión Celeste y Blanca",
+    "ProCor": "Proyecto Corrientes",
+    "UpT": "Unión por Todos",
+    "ELI - PdT": "ELI - PdT",
+    "LdS": "LdS",
+    "PAIS": "PAIS",
+    "PSP": "Partido Socialista Popular",
+    "PDP": "Partido Demócrata Progresista",
+    "PI": "Partido Intransigente",
+    "PC": "Partido Comunista",
+    "PDC": "Partido Demócrata Cristiano",
+    "MODIN": "MODIN",
+    "ARI": "Afirmación para una República Igualitaria",
+    "PAUFE": "PAUFE",
+    "FRS": "FRS",
+    "MOPOF": "MOPOF",
+    "PRS": "PRS",
+    "GEN": "GEN",
+    "MOVERE": "MOVERE",
+    "MIJD": "MIJD",
+    "PB": "Partido Bloquista",
+    "PL": "Partido Liberal",
+    "PN": "Partido Nacional",
+    "PP": "PP",
+    "PPC": "PPC",
+    "PPS": "PPS",
+    "UCYB": "Unión Celeste y Blanca",
+    "UP": "UP",
+    "UXT": "UXT",
+    "UNIR": "UNIR",
+    "ADN": "ADN",
+    "AF": "AF",
+    "AP": "Acción por la República",
+    "CR": "CR",
+    "EP": "EP",
+    "FL": "Fuerza Liberal",
+    "RU": "RU",
+    "SER": "SER",
+    "SST": "SST",
+    "SNU": "SNU",
+    "BAPT": "BAPT",
+    "CHUSOTO": "CHUSOTO",
+    "CET": "CET",
+    "FCC": "Frente Cívico de Córdoba",
+    "FCYS": "FCYS",
+    "FE": "Fuerza Entrerriana",
+    "FEF": "FEF",
+    "FTNP": "FTNP",
+    "FPG": "FPG",
+    "LTP": "Lealtad y Trabajo por la Provincia",
+    "LDS": "LDS",
+    "MNA": "MNA",
+    "NP": "NP",
+    "P3P": "Partido Tercera Posición",
+    "PAIS": "PAIS",
+    "PARES": "PARES",
+    "PAYS": "PAYS",
+    "PCP": "PCP",
+    "PCS": "PCS",
+    "PDV": "Partido de la Victoria",
+    "PD-VyF": "Partido Demócrata - Viento y Fuego",
+    "PRFTU": "Partido Renovador Federal de Tucumán",
+    "PARTE": "PARTE",
+    "PDD": "PDD",
+    "PDF": "PDF",
+    "PROCOR": "PROCOR",
+    "PYT": "PYT",
+    "USPV": "USPV",
+    "UPL": "UPL",
+    "1RN": "Primero Río Negro",
+    "3P": "Tercera Posición",
+    "ERF": "ERF",
+    "CP": "CP",
+    "MST": "Movimiento Socialista de los Trabajadores",
+    "PH": "Partido Humanista",
+    "PBT": "Partido de los Trabajadores",
+    "PSA": "Partido Socialista Auténtico",
+    "PSOL": "Partido Socialista de los Trabajadores",
+    "PSUR": "PSUR",
+    "PSD-FREPASO": "PSD-FREPASO",
+    "SI": "Solidaridad e Igualdad",
+    "SI-FG": "SI-FG",
+    "MAS": "Movimiento al Socialismo",
+    "MPN": "Movimiento Popular Neuquino",
+    "UCEDE": "Unión del Centro Democrático",
+    "UCEDÉ": "Unión del Centro Democrático",
+    "FREPASO": "FREPASO",
+}
+
+
+def normalize_party_code(code: str) -> str:
+    """Normalize a party code to its full name."""
+    if not code:
+        return code
+    # Normalize the input code (uppercase, strip spaces)
+    normalized = code.upper().strip()
+    # Return the full name if available, otherwise return original
+    return _PARTY_CODE_NAMES.get(normalized, code)
+
+
+# ---------------------------------------------------------------------------
 # Alliance → Coalition classification
 # ---------------------------------------------------------------------------
 
@@ -99,6 +245,12 @@ _PJ_ALLIANCES = {
     # Classical PJ (pre-2003)
     "partido justicialista", "frente justicialista",
     "frente para la victoria",
+    # PJ-led alliances that were incorrectly classified as UCR
+    "frente fundacional para el cambio",  # PJ + Partido Federal + Cambio Democrático + MPT + Vanguardia Provincial
+    "frente ciudadano y social",  # PJ-led provincial alliances
+    "frente jujeño", "frente jujeño justicialista",  # PJ-led in Jujuy
+    "frente para el cambio",  # PJ-led (2001 Jujuy)
+    "frente cívico jujeño",  # PJ-led (2001 Jujuy)
 }
 
 _PJ_KEYWORDS = [
@@ -144,18 +296,13 @@ _UCR_ALLIANCES = {
     "unión cívica radical", "alianza",
     "alianza trabajo, justicia y educación",
     "alianza para el trabajo, la justicia y la educación",
-    "frente de todos",  # 2005 Corrientes, UCR-led
     "concertación para el desarrollo",
-    "frente jujeño", "frente jujeño justicialista",
     "frente progresista cívico y social",
     "encuentro por córdoba",
     "acuerdo cívico y social", "frente acuerdo cívico y social",
-    "frente amplio unen", "frente cívico jujeño",
+    "frente amplio unen",
     "frente pampeano cívico y social", "propuesta frente pampeano cívico y social",
     "cambia neuquén",
-    "frente para el cambio",
-    "frente ciudadano y social",
-    "frente fundacional para el cambio",
 }
 
 _UCR_KEYWORDS = [
@@ -217,19 +364,28 @@ def classify_party_code(code: str, year: int) -> str | None:
              "FREJULI",
              "PJ-FS", "PJ-HACER", "PJ-KOLINA", "PJ-LC", "PJ-LSL",
              "PJ-PCS", "PJ-PXC", "PJ-UPTDF", "PJ-UYO",
-             "PJS", "IND.-PJ", "KOLINA", "FORJA", "NE", "PTP-PCR"):
+             "PJS", "IND.-PJ", "KOLINA", "FORJA", "NE", "PTP-PCR",
+             "PARTIDO JUSTICIALISTA"):
         return "PJ"
 
-    # UCR codes
-    if c in ("UCR", "U.C.R."):
+    # UCR codes (includes CC-ARI which was allied with UCR)
+    if c in ("UCR", "U.C.R.", "CC-ARI", "CC", "ARI",
+             "UNIÓN CÍVICA RADICAL", "UNION CIVICA RADICAL"):
         return "UCR"
 
-    # PRO codes (from 2003+)
-    if c in ("PRO", "CC-ARI", "CC", "CXC", "MID-PRO"):
-        return "PRO" if year >= 2003 else "OTROS"
+    # PRO/Cambiemos/JxC codes (from 2003+)
+    # Use JxC for 2015-2023 (Cambiemos/Juntos por el Cambio era)
+    # Use OTROS for 2003-2014 (PRO was minor party before Cambiemos)
+    # Use OTROS for 2024+ (PRO merged into LLA)
+    if c in ("PRO", "CXC", "MID-PRO", "PROPUESTA REPUBLICANA"):
+        if year >= 2003:
+            if 2015 <= year <= 2023:
+                return "JxC"
+            return "OTROS"
+        return "OTROS"
 
     # LLA codes
-    if c in ("LLA",):
+    if c in ("LLA", "LA LIBERTAD AVANZA"):
         return "LLA" if year >= 2021 else "OTROS"
 
     # Codes that map to OTROS regardless of era
@@ -249,7 +405,23 @@ def classify_party_code(code: str, year: int) -> str | None:
              "MNA", "NP", "P3P", "PAIS", "PARES", "PAYS",
              "PCP", "PCS", "PDV", "PD-VYF", "PRFTU",
              "PARTE", "PDD", "PDF", "PROCOR", "PYT", "USPV",
-             "UPL", "1RN", "3P", "ERF", "CP"):
+             "UPL", "1RN", "3P", "ERF", "CP",
+             # Full party names
+             "PARTIDO SOCIALISTA", "PARTIDO SOCIALISTA AUTÉNTICO", "PARTIDO SOCIALISTA AUTENTICO",
+             "PARTIDO SOCIALISTA POPULAR", "PARTIDO SOCIALISTA DEMOCRÁTICO", "PARTIDO SOCIALISTA DEMOCRATICO",
+             "PARTIDO OBRERO", "PARTIDO DE LOS TRABAJADORES SOCIALISTAS", "PARTIDO HUMANISTA",
+             "PARTIDO INTRANSIGENTE", "PARTIDO COMUNISTA", "PARTIDO DEMÓCRATA CRISTIANO",
+             "PARTIDO DEMOCRATA CRISTIANO", "PARTIDO DEMÓCRATA", "PARTIDO DEMOCRATA",
+             "PARTIDO LIBERAL", "PARTIDO BLOQUISTA", "MOVIMIENTO SOCIALISTA DE LOS TRABAJADORES",
+             "MOVIMIENTO AL SOCIALISMO", "MOVIMIENTO POPULAR NEUQUINO", "MOVIMIENTO DE INTEGRACIÓN Y DESARROLLO",
+             "MOVIMIENTO AL INTEGRACION Y DESARROLLO", "FRENTE GRANDE", "FRENTE RENOVADOR",
+             "PARTIDO TERCERA POSICIÓN", "PARTIDO TERCERA POSICION", "IZQUIERDA SOCIALISTA",
+             "ACCIÓN POR LA REPÚBLICA", "ACCION POR LA REPÚBLICA", "ACCIÓN POR LA REPUBLICA",
+             "NUEVO ENCUENTRO", "PARTIDO DE LA VICTORIA", "PARTIDO DEMÓCRATA - VIENTO Y FUEGO",
+             "PARTIDO DEMOCRATA - VIENTO Y FUEGO", "PARTIDO RENOVADOR FEDERAL DE TUCUMÁN",
+             "PARTIDO RENOVADOR FEDERAL DE TUCUMAN", "LEALTAD Y TRABAJO POR LA PROVINCIA",
+             "PARTIDO LIBERAL DE CORRIENTES", "PRIMERO RÍO NEGRO", "PRIMERO RIO NEGRO",
+             "FUERZA LIBERAL", "UNITE", "ACTIVAR"):
         return "OTROS"
 
     # Not recognized — let caller fall back to alliance classification
@@ -317,12 +489,23 @@ def classify_alliance(alliance_name: str, year: int) -> str:
         return "UCR"  # Alianza was UCR-led
 
     # --- PRO/Cambiemos/JxC (from 2003+) ---
+    # Note: PRO as a standalone coalition only existed 2015-2023 as part of Cambiemos/JxC
+    # Before 2015, PRO-related alliances are classified as OTROS (minor party)
+    # After 2023, PRO merged into LLA
     if year >= 2003:
         for kw in _PRO_KEYWORDS:
             if kw in clean:
-                return "PRO"
+                # Use JxC for 2015-2023 (Cambiemos/Juntos por el Cambio era)
+                # Use OTROS for 2003-2014 and 2024+ (PRO was minor or merged)
+                if 2015 <= year <= 2023:
+                    return "JxC"
+                return "OTROS"
         if clean in _PRO_ALLIANCES:
-            return "PRO"
+            # Use JxC for 2015-2023 (Cambiemos/Juntos por el Cambio era)
+            # Use OTROS for 2003-2014 and 2024+ (PRO was minor or merged)
+            if 2015 <= year <= 2023:
+                return "JxC"
+            return "OTROS"
 
     # --- Specific OTROS checks ---
     if clean in _OTROS_ALLIANCES:
@@ -610,21 +793,29 @@ def parse_election_page(html: str, year: int) -> dict:
 
             for cand_name, party_code, is_suplente in candidates:
                 if cand_name.strip():
-                    # Party code is primary when it identifies a major coalition;
-                    # if it returns OTROS (= unrecognized minor party), prefer
-                    # the alliance-level classification instead.
-                    pc_coalition = classify_party_code(party_code, year) if party_code else None
-                    if pc_coalition and pc_coalition != "OTROS":
-                        coalition = pc_coalition
+                    # If alliance is LLA, always use LLA regardless of party_code
+                    # (some LLA candidates ran with minor party codes like CxC)
+                    if alliance_coalition == "LLA":
+                        coalition = "LLA"
                     else:
-                        coalition = alliance_coalition
+                        # Party code is primary when it identifies a major coalition;
+                        # if it returns OTROS (= unrecognized minor party), prefer
+                        # the alliance-level classification instead.
+                        pc_coalition = classify_party_code(party_code, year) if party_code else None
+                        if pc_coalition and pc_coalition != "OTROS":
+                            coalition = pc_coalition
+                        else:
+                            coalition = alliance_coalition
+
+                    # Normalize party code to full name
+                    normalized_party_code = normalize_party_code(party_code) if party_code else None
 
                     entry = {
                         "name": cand_name.strip(),
                         "province": province,
                         "alliance": alliance_name,
                         "coalition": coalition,
-                        "party_code": party_code,
+                        "party_code": normalized_party_code,
                     }
                     if is_suplente:
                         entry["suplente"] = True
