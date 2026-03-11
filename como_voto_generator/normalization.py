@@ -325,7 +325,9 @@ def normalize_vote(vote_str: str) -> str:
 
 
 def normalize_name(name: str) -> str:
-    normalized = re.sub(r"\s+", " ", name.strip().upper())
+    # Remove nicknames in quotes (e.g., "TOPO", "PIPI")
+    normalized = re.sub(r'\s*"[^"]*"', '', name.strip())
+    normalized = re.sub(r"\s+", " ", normalized).upper()
     replacements = {
         "Á": "A",
         "É": "E",

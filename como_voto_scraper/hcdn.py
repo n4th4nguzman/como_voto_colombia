@@ -63,6 +63,7 @@ _SLUG_STOP_WORDS = {
 
 # Cache for the id->slug map built from HCDN year-based search pages.
 _SLUG_MAP: dict[str, str] | None = None
+SLUG_MAP_CACHE_FILE = DATA_DIR / "hcdn_slug_map.json"
 
 
 def _slugify(text: str, max_words: int = 4) -> str:
@@ -82,11 +83,33 @@ def _slugify(text: str, max_words: int = 4) -> str:
     return "-".join(words[:max_words])
 
 
-def fetch_hcdn_slug_map() -> dict[str, str]:
-    """Scrape /votaciones/search for every year to build a complete id->slug map."""
+def fetch_hcdn_slug_map(update_latest_only: bool = False) -> dict[str, str]:
+    """Scrape /votaciones/search for every year to build a complete id->slug map.
+    
+    If update_latest_only is True, only fetch the current year and merge with cache.
+    """
     slug_map: dict[str, str] = {}
     current_year = datetime.now().year
-    for year in range(1993, current_year + 1):
+    
+    # If updating only latest year, load existing cache first
+    if update_latest_only and SLUG_MAP_CACHE_FILE.exists():
+        try:
+            import json
+            with open(SLUG_MAP_CACHE_FILE, "r", encoding="utf-8") as f:
+                slug_map = json.load(f)
+            log.info(f"Loaded {len(slug_map)} existing slug entries from cache")
+        except Exception as exc:
+            log.warning(f"Failed to load slug cache: {exc}")
+    
+    # Determine which years to scrape
+    if update_latest_only and slug_map:
+        years_to_scrape = [current_year]
+        log.info(f"Updating slug map for year {current_year} only...")
+    else:
+        years_to_scrape = list(range(1993, current_year + 1))
+        log.info(f"Building full slug map for years 1993-{current_year}...")
+    
+    for year in years_to_scrape:
         try:
             resp = SESSION.post(
                 f"{HCDN_BASE}/votaciones/search",
@@ -112,8 +135,33 @@ def get_slug_map() -> dict[str, str]:
     """Return the cached id->slug map, building it on the first call."""
     global _SLUG_MAP
     if _SLUG_MAP is None:
-        log.info("Building HCDN slug map from search pages (one-time) ...")
-        _SLUG_MAP = fetch_hcdn_slug_map()
+        # Try to load from cache file first
+        if SLUG_MAP_CACHE_FILE.exists():
+            try:
+                import json
+                with open(SLUG_MAP_CACHE_FILE, "r", encoding="utf-8") as f:
+                    _SLUG_MAP = json.load(f)
+                log.info(f"Loaded slug map from cache: {len(_SLUG_MAP)} entries")
+                
+                # Update only the latest year
+                current_year = datetime.now().year
+                log.info(f"Updating slug map for year {current_year}...")
+                _SLUG_MAP = fetch_hcdn_slug_map(update_latest_only=True)
+            except Exception as exc:
+                log.warning(f"Failed to load slug map cache: {exc}")
+                _SLUG_MAP = fetch_hcdn_slug_map(update_latest_only=False)
+        else:
+            log.info("Building HCDN slug map from search pages (one-time) ...")
+            _SLUG_MAP = fetch_hcdn_slug_map(update_latest_only=False)
+        
+        # Save to cache
+        try:
+            import json
+            with open(SLUG_MAP_CACHE_FILE, "w", encoding="utf-8") as f:
+                json.dump(_SLUG_MAP, f)
+            log.info(f"Saved slug map to cache: {SLUG_MAP_CACHE_FILE}")
+        except Exception as exc:
+            log.warning(f"Failed to save slug map cache: {exc}")
     return _SLUG_MAP
 
 

@@ -278,6 +278,9 @@ def _strip_accents(value: str) -> str:
 
 def _normalize_display_name(name: str) -> str:
     """Normalize ``SURNAME, FIRSTNAME`` to a cleaner display style."""
+    import re
+    # Remove nicknames in quotes (e.g., "TOPO", "PIPI")
+    name = re.sub(r'\s*"[^"]*"', '', name).strip()
     if "," not in name:
         return name
     surname, _, first = name.partition(",")
