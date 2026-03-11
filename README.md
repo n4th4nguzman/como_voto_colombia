@@ -6,8 +6,6 @@ Visualización interactiva de cómo votan los Diputados y Senadores de la Nació
 
 👉 **[Abrir ¿Cómo Votó?](https://rquiroga7.github.io/Como_voto/)**
 
-*(Reemplazá TU-USUARIO con tu nombre de usuario de GitHub)*
-
 ## 📊 ¿Qué muestra?
 
 - **Buscador** de todos los Diputados y Senadores de la Nación
@@ -27,24 +25,63 @@ Visualización interactiva de cómo votan los Diputados y Senadores de la Nació
 
 ```
 Como_voto/
-├── scraper.py           # Script de recolección de datos (HCDN + Senado)
-├── generate_site.py     # Procesador: agrupación de leyes, nombres comunes, cruce de cámaras, waffle
-├── requirements.txt     # Dependencias Python
-├── data/                # Base de datos local (JSON)
-│   ├── diputados/       # Detalle de cada votación de Diputados
-│   └── senadores/       # Detalle de cada votación de Senadores
-├── docs/                # Sitio web (GitHub Pages)
-│   ├── index.html
-│   ├── style.css
-│   ├── app.js
-│   └── data/            # JSON generados para el frontend
-│       ├── stats.json
-│       ├── legislators.json
-│       ├── votaciones.json
-│       ├── law_names.json
-│       └── legislators/  # Un archivo por legislador (con datos waffle)
-└── .github/workflows/
-    └── update-data.yml  # Actualización automática diaria
+├── scraper.py                 # Entry point (fachada hacia como_voto_scraper/)
+├── generate_site.py           # Entry point (fachada hacia como_voto_generator/)
+├── requirements.txt           # Dependencias Python
+├── README.md                  # Este archivo
+├── .github/workflows/
+│   └── update-data.yml        # GitHub Action: scrape + generate + deploy diario
+│
+├── como_voto_scraper/         # Paquete de scraping (implementación real)
+│   ├── __init__.py            # Exports de la fachada
+│   ├── runner.py              # Main CLI y orquestación
+│   ├── db.py                  # ConsolidatedDB: SQLite + JSON, VOTE_ENCODE/DECODE
+│   ├── hcdn.py                # Scraper Cámara de Diputados (votaciones.hcdn.gob.ar)
+│   ├── senado.py              # Scraper Senado (senado.gob.ar/votaciones/actas)
+│   ├── photos.py              # Scraper de fotos de legisladores
+│   └── core.py                # Utilidades: classify_bloc, etc.
+│
+├── como_voto_generator/       # Paquete de generación de datos (implementación real)
+│   ├── __init__.py            # Exports de la fachada
+│   ├── runner.py              # Main CLI y orquestación
+│   ├── data_loading.py        # Carga desde DB/JSON, attach_photos, practical_year_range
+│   ├── processing.py          # Construcción de datos por legislador, majority vote
+│   ├── laws.py                # Agrupación de leyes, nombres comunes (COMMON_NORM)
+│   ├── normalization.py       # Normalización de nombres, provincias, votos, bloques
+│   ├── export.py              # Generación de JSON para frontend (alignment, terms)
+│   └── common.py              # Utilidades: save_json, etc.
+│
+├── data/                      # Base de datos local (JSON + SQLite)
+│   ├── diputados.json         # Votaciones Diputados (raw)
+│   ├── senadores.json         # Votaciones Senadores (raw)
+│   ├── diputados_photos.json  # Mapeo de fotos Diputados
+│   ├── senadores_photos.json  # Mapeo de fotos Senadores
+│   ├── hcdn_slug_map.json     # Mapeo de slugs HCDN
+│   ├── bloc_coalition_map.json# Mapeo bloques → coaliciones
+│   └── election_legislators.json # Legisladores por elección
+│
+├── docs/                      # Sitio web (GitHub Pages)
+│   ├── index.html             # Frontend principal
+│   ├── style.css              # Estilos
+│   ├── app.js                 # Lógica frontend
+│   └── data/                  # JSON generados para el frontend
+│       ├── stats.json         # Estadísticas generales
+│       ├── legislators.json   # Lista de legisladores
+│       ├── votaciones.json    # Detalle de votaciones
+│       ├── law_names.json     # Nombres comunes de leyes
+│       └── legislators/       # Un archivo por legislador (datos waffle)
+│
+├── tools/                     # Herramientas auxiliares
+│   ├── serve.py               # Servidor local para desarrollo
+│   ├── build_bloc_map.py      # Generar mapeo de bloques
+│   ├── verify_coalitions.py   # Verificar coaliciones
+│   ├── scrape_elections.py    # Scrape datos de elecciones
+│   ├── check_legislator_files.py  # Verificar archivos de legisladores
+│   └── legacy/                # Scripts legacy (mantenidos por compatibilidad)
+│
+└── tests/                     # Tests unitarios
+    ├── test_normalization.py  # Tests de normalización
+    └── test_processing.py     # Tests de procesamiento
 ```
 
 ## 🚀 Uso
@@ -64,13 +101,13 @@ pip install -r requirements.txt
 
 ```bash
 # Scrape ambas cámaras
-python tools/scraper.py
+python scraper.py
 
 # Solo Diputados
-python tools/scraper.py diputados
+python scraper.py diputados
 
 # Solo Senadores
-python tools/scraper.py senadores
+python scraper.py senadores
 ```
 
 El scraper **no vuelve a descargar** votaciones que ya están en `data/`. Solo descarga las nuevas.
@@ -78,7 +115,7 @@ El scraper **no vuelve a descargar** votaciones que ya están en `data/`. Solo d
 ### Generar el sitio
 
 ```bash
-python tools/generate_site.py
+python generate_site.py
 ```
 
 Esto genera los archivos JSON en `docs/data/` que son consumidos por el frontend.
@@ -86,6 +123,12 @@ Esto genera los archivos JSON en `docs/data/` que son consumidos por el frontend
 ### Ver localmente
 
 Podés abrir `docs/index.html` directamente en el navegador, o usar un servidor local:
+
+```bash
+python tools/serve.py
+```
+
+O alternativamente:
 
 ```bash
 cd docs
@@ -103,7 +146,13 @@ Y visitar `http://localhost:8000`
 
 ## 🔄 Actualización automática
 
-El GitHub Action `update-data.yml` se ejecuta automáticamente todos los días, recolecta nuevas votaciones y actualiza el sitio.
+El GitHub Action `update-data.yml` se ejecuta automáticamente todos los días a las 07:00 UTC (04:00 GMT-3), recolecta nuevas votaciones y actualiza el sitio. También puede ejecutarse manualmente desde la pestaña "Actions" del repositorio.
+
+## 🧪 Tests
+
+```bash
+python -m pytest tests/
+```
 
 ## 📜 Licencia
 
