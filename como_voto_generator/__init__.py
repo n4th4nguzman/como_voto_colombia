@@ -17,6 +17,7 @@ from .export import (
     compute_terms,
     compute_weighted_alignment,
     generate_site_data,
+    generate_site_data_colombia,
 )
 from .laws import COMMON_NORM, _kw_matches, build_law_groups, extract_law_group_key, get_common_name
 from .normalization import (
@@ -64,6 +65,7 @@ __all__ = [
     "extract_section_label",
     "extract_year",
     "generate_site_data",
+    "generate_site_data_colombia",
     "get_common_name",
     "is_contested",
     "load_all_votaciones_from_db",

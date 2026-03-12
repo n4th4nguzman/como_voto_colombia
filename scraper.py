@@ -18,6 +18,12 @@ from como_voto_scraper import (
     scrape_senadores_photos,
 )
 
+from como_voto_scraper_colombia import (
+    scrape_camara_colombia,
+    scrape_senado_colombia,
+    scrape_photos_colombia,  # Updated alias for legislator photos in Colombia
+)
+
 __all__ = [
     "ConsolidatedDB",
     "VOTE_DECODE",
@@ -29,6 +35,9 @@ __all__ = [
     "scrape_senadores",
     "scrape_diputados_photos",
     "scrape_senadores_photos",
+    "scrape_camara_colombia",
+    "scrape_senado_colombia",
+    "scrape_photos_colombia",
 ]
 
 

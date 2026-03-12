@@ -31,6 +31,12 @@ jobs:
         run: python scraper.py
         timeout-minutes: 120
 
+      - name: Run Colombia scraper
+        run: |
+          python scraper.py scrape_camara_colombia
+          python scraper.py scrape_senado_colombia
+          python scraper.py scrape_legislator_photos_colombia
+
       - name: Generate site data
         run: python generate_site.py
 

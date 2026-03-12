@@ -1286,3 +1286,29 @@ def generate_site_data(legislators: dict, law_groups: dict) -> None:
     }
     save_json(DOCS_DATA_DIR / "stats.json", stats)
     log.info("Generated global stats")
+
+
+def export_colombia_data() -> None:
+    """Export processed Colombia data to JSON files for the frontend."""
+    log.info("Exporting Colombia data...")
+
+    # Example: Load processed data from the Colombia scraper
+    processed_senado_path = DATA_DIR / "colombia/senado_processed.json"
+    processed_camara_path = DATA_DIR / "colombia/camara_processed.csv"
+
+    # Load Senado data
+    with open(processed_senado_path, "r", encoding="utf-8") as f:
+        senado_data = json.load(f)
+
+    # Load Cámara data
+    import pandas as pd
+    camara_data = pd.read_csv(processed_camara_path).to_dict(orient="records")
+
+    # Combine and save to docs/data/
+    combined_data = {
+        "senado": senado_data,
+        "camara": camara_data,
+    }
+    output_path = DOCS_DATA_DIR / "colombia_votaciones.json"
+    save_json(combined_data, output_path)
+    log.info(f"Colombia data exported to {output_path}")
