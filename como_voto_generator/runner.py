@@ -14,8 +14,8 @@ def main() -> None:
     log.info(f"Loading votaciones from {DATA_DIR}")
 
     all_votaciones = []
-    all_votaciones.extend(load_all_votaciones_from_db("diputados"))
-    all_votaciones.extend(load_all_votaciones_from_db("senadores"))
+    all_votaciones.extend(load_all_votaciones_from_db("camara_col"))   # Cámara de Representantes
+    all_votaciones.extend(load_all_votaciones_from_db("senado_col"))   # Senado de Colombia
 
     if not all_votaciones:
         log.warning("No votaciones found. Run scraper.py first.")

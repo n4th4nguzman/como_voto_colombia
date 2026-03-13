@@ -204,6 +204,50 @@ COMMON_LAW_NAMES = [
     # --- Other ---
     (["defensa nacional"], "Defensa Nacional"),
     (["inocencia fiscal"], "Inocencia Fiscal"),
+
+    # -----------------------------------------------------------------------
+    # Colombia (Cámara de Representantes / Senado)
+    # Titles from the Colombian scraper are concatenated without spaces,
+    # e.g. "PL.166/23C-REFORMALABORAL-TITULOYPREGUNTA" → keyword "reformalaboral"
+    # -----------------------------------------------------------------------
+
+    # --- Grandes reformas ---
+    (["reformapensional", "reforma pensional", "reforma al sistema pensional", "ley2381"], "Reforma Pensional"),
+    (["reformalaboral", "reforma laboral", "modernizacion laboral", "modernización laboral"], "Reforma Laboral"),
+    (["reformaalaeducacion", "reforma a la educacion", "ple.224-2023", "ple.224-23"], "Reforma a la Educación"),
+    (["reformasalud", "reforma a la salud", "reforma al sistema de salud"], "Reforma a la Salud"),
+
+    # --- Derechos sociales / laborales ---
+    (["trabajodelhogar", "trabajo del hogar"], "Trabajo del Hogar"),
+    (["empleosverdes", "empleos verdes"], "Empleos Verdes"),
+    (["mesadacatorcedocentes", "mesada catorce docentes", "mesada14profesores", "mesada 14 profesores", "pal.272/24mesada", "pal.213/25mesada"], "Mesada Catorce Docentes"),
+    (["entregagratuitadecopasmenstruales", "copas menstruales"], "Copas Menstruales"),
+
+    # --- Ambiente y territorio ---
+    (["esterilizaciondegatosyperros", "esterilizacion de gatos y perros", "programanacionaldeesterilizacion"], "Esterilización de Mascotas"),
+    (["prohibicioncorridasdetoros", "prohibicion corridas de toros", "corridas de toros"], "Prohibición Corridas de Toros"),
+    (["recuperaciondelsuelo", "recuperacion del suelo"], "Recuperación del Suelo"),
+
+    # --- Cultura y educación ---
+    (["leydelamusica", "ley de la musica"], "Ley de la Música"),
+    (["leyjorgepizano", "jorge pizano"], "Ley Jorge Pizano"),
+    (["accesoalaeducacion", "pl.250-2023"], "Acceso a la Educación"),
+
+    # --- Infraestructura y economía ---
+    (["serviciosdetelecomunicacionesytic", "pl.341-23c"], "Telecomunicaciones y TICs"),
+    (["movilidadsegura", "movilidad segura", "pl.233-2023c"], "Movilidad Segura"),
+    (["hidrogeno", "pl.275-2022c"], "Hidrógeno"),
+
+    # --- Salud ---
+    (["autonomiasanitaria", "autonomia sanitaria", "pl.188-2023c"], "Autonomía Sanitaria"),
+    (["politicareduccionsustanciaspsicoactivas", "sustancias psicoactivas", "pl.225/23"], "Reducción Sustancias Psicoactivas"),
+
+    # --- Institucional / política ---
+    (["consultaanticorrupcion", "consulta anticorrupcion"], "Consulta Anticorrupción"),
+
+    # --- Distritos y patrimonio ---
+    (["distritoturisticoamazonas", "distrito turistico amazonas", "pal.074/24"], "Distrito Turístico Amazonas"),
+    (["distritopuertocolombia", "distrito puerto colombia", "pal.079/24"], "Distrito Puerto Colombia"),
 ]
 
 

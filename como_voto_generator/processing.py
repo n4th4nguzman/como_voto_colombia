@@ -151,91 +151,58 @@ def build_legislator_data(all_votaciones: list[dict], law_groups: dict) -> dict:
         group_data = law_groups.get(group_key, {})
         law_display_name = group_data.get("common_name") or group_data.get("title", title)
 
-        # Coalition definitions (case-insensitive matching)
-        PJ_COALITIONS = [
-            "PJ",
-            "JUSTICIALISTAS",
-            "FRENTE PARA LA VICTORIA",
-            "FRENTE DE TODOS",
-            "UNION POR LA PATRIA",
-            "UXP",
-            "Unidad Ciudadana",
-            "Frente Justicialista",
+        # Coalition definitions for Colombia (case-insensitive matching)
+        PACTO_COALITIONS = [
+            "PACTO HISTORICO",
+            "PACTO HISTÓRICO",
+            "COLOMBIA HUMANA",
+            "UNION PATRIOTICA",
+            "UNIÓN PATRIÓTICA",
+            "UP",
+            "MAIS",
+            "COMUNES",
         ]
-        UCR_COALITIONS = [
-            "UCR",
-            "UNION CIVICA RADICAL",
-            "UNIÓN CÍVICA RADICAL",
-            "RADICAL",
-            "CC",
-            "ACyS",
-            "UDESO",
-            "FPCyS",
-            "Frente Progresista Cívico y Social",
-            "Unión para el Desarrollo Social",
-            "Acuerdo Cívico y Social",
-            "Concertación para Una Nación Avanzada",
-            "UNA",
-            "ARI",
-            "Argentinos por una República de Iguales",
-            "Coalición Cívica",
-            "Coalición Cívica ARI",
+        LIBERAL_COALITIONS = [
+            "PARTIDO LIBERAL",
+            "LIBERAL COLOMBIANO",
+            "LIBERAL",
         ]
-        JXC_COALITIONS = [
-            "UCR",
-            "Unión Cívica Radical",
-            "Union Civica Radical",
-            "JxC",
-            "Juntos por el Cambio",
-            "CC",
-            "Coalición Cívica",
-            "Cambiemos",
-            "PRO",
-            "Propuesta Republicana",
-            "Frente Pro",
-            "Frente Cambiemos",
-            "Frente Juntos por el Cambio",
-            "ARI",
-            "Coalición Cívica ARI",
+        CONSERVADOR_COALITIONS = [
+            "PARTIDO CONSERVADOR",
+            "CONSERVADOR COLOMBIANO",
+            "CONSERVADOR",
         ]
-        LLA_PRO_COALITIONS = [
-            "LLA",
-            "PRO",
-            "Juntos por el Cambio",
-            "Alianza La Libertad Avanza",
+        CD_COALITIONS = [
+            "CENTRO DEMOCRATICO",
+            "CENTRO DEMOCRÁTICO",
+            "CD",
         ]
 
-        # PJ majority across the PJ coalition variants
-        pj_majority = compute_combined_majority(votacion.get("votes", []), PJ_COALITIONS)
+        pacto_majority = compute_combined_majority(votacion.get("votes", []), PACTO_COALITIONS)
+        liberal_majority = compute_combined_majority(votacion.get("votes", []), LIBERAL_COALITIONS)
+        conservador_majority = compute_combined_majority(votacion.get("votes", []), CONSERVADOR_COALITIONS)
+        cd_majority = compute_combined_majority(votacion.get("votes", []), CD_COALITIONS)
 
-        combined_ucr = compute_combined_majority(votacion.get("votes", []), UCR_COALITIONS)
-        combined_jxc = compute_combined_majority(votacion.get("votes", []), JXC_COALITIONS)
-        combined_lla_pro = compute_combined_majority(votacion.get("votes", []), LLA_PRO_COALITIONS)
+        # Main opposition: CD vs government (Pacto)
+        opp_majority = cd_majority if cd_majority not in ("N/A", "AUSENTE") else conservador_majority if conservador_majority not in ("N/A", "AUSENTE") else "N/A"
+        contested = is_contested(year, pacto_majority, opp_majority)
 
-        # choose opposition majority based on year
-        if year is None:
-            opp_majority = "N/A"
-        elif year <= 2014:
-            opp_majority = combined_ucr
-        elif year <= 2023:
-            opp_majority = combined_jxc
-        else:
-            opp_majority = combined_lla_pro
+        # Keep placeholders for compatibility
+        pj_majority = pacto_majority
+        combined_ucr = liberal_majority
+        combined_jxc = conservador_majority
+        combined_lla_pro = cd_majority
 
         # Exclude procedural votes
         title_low = title.lower() if title else ""
         if (
-            "moción de orden" in title_low
-            or "moción del diputado" in title_low
-            or "mocion de orden" in title_low
-            or "pedido de licencia" in title_low
-            or "pedido de pref" in title_low
-            or "apartamiento del reglamento solicitado" in title_low
-            or "pedido tratamiento sobre tablas" in title_low
+            "proposición de orden" in title_low
+            or "proposicion de orden" in title_low
+            or "solicitud de licencia" in title_low
+            or "cuestion previa" in title_low
+            or "cuestión previa" in title_low
         ):
             contested = False
-        else:
-            contested = is_contested(year, pj_majority, opp_majority)
 
         for vote_record in votacion.get("votes", []):
             name = vote_record.get("name", "").strip()
@@ -260,10 +227,10 @@ def build_legislator_data(all_votaciones: list[dict], law_groups: dict) -> dict:
                     "_yr_blocs": {},
                     "_yr_provinces": {},
                     "alignment": {
-                        "PJ": {"total": 0, "aligned": 0},
-                        "PRO": {"total": 0, "aligned": 0},
-                        "LLA": {"total": 0, "aligned": 0},
-                        "UCR": {"total": 0, "aligned": 0},
+                        "PACTO": {"total": 0, "aligned": 0},
+                        "LIBERAL": {"total": 0, "aligned": 0},
+                        "CONSERVADOR": {"total": 0, "aligned": 0},
+                        "CD": {"total": 0, "aligned": 0},
                     },
                     "yearly_alignment": {},
                 }
@@ -305,10 +272,6 @@ def build_legislator_data(all_votaciones: list[dict], law_groups: dict) -> dict:
                 "d": date,
                 "yr": year,
                 "v": norm_vote,
-                "pj": pj_majority,
-                "pro": combined_jxc,
-                "lla": combined_lla_pro,
-                "ucr": combined_ucr,
                 "tp": vtype,
                 "gk": group_key,
                 "ln": law_display_name[:120] if law_display_name else "",
@@ -356,56 +319,39 @@ def build_legislator_data(all_votaciones: list[dict], law_groups: dict) -> dict:
 
                 if yr_key not in leg["yearly_alignment"]:
                     leg["yearly_alignment"][yr_key] = {
-                        "PJ": {"total": 0, "aligned": 0},
-                        "PRO": {"total": 0, "aligned": 0},
-                        "LLA": {"total": 0, "aligned": 0},
-                        "UCR": {"total": 0, "aligned": 0},
-                        "JxC": {"total": 0, "aligned": 0},
+                        "PACTO": {"total": 0, "aligned": 0},
+                        "LIBERAL": {"total": 0, "aligned": 0},
+                        "CONSERVADOR": {"total": 0, "aligned": 0},
+                        "CD": {"total": 0, "aligned": 0},
                     }
 
                 if contested and norm_vote not in ("AUSENTE", "PRESIDENTE"):
-                    # PJ alignment (combined PJ coalition)
-                    if pj_majority not in ("N/A", "AUSENTE"):
-                        leg["alignment"]["PJ"]["total"] += 1
-                        leg["yearly_alignment"][yr_key]["PJ"]["total"] += 1
-                        if norm_vote == pj_majority:
-                            leg["alignment"]["PJ"]["aligned"] += 1
-                            leg["yearly_alignment"][yr_key]["PJ"]["aligned"] += 1
+                    if pacto_majority not in ("N/A", "AUSENTE"):
+                        leg["alignment"]["PACTO"]["total"] += 1
+                        leg["yearly_alignment"][yr_key]["PACTO"]["total"] += 1
+                        if norm_vote == pacto_majority:
+                            leg["alignment"]["PACTO"]["aligned"] += 1
+                            leg["yearly_alignment"][yr_key]["PACTO"]["aligned"] += 1
 
-                    # UCR combined majority
-                    if combined_ucr not in ("N/A", "AUSENTE"):
-                        leg["yearly_alignment"][yr_key]["UCR"]["total"] += 1
-                        if norm_vote == combined_ucr:
-                            leg["yearly_alignment"][yr_key]["UCR"]["aligned"] += 1
-                        if year is not None and year <= 2014:
-                            leg["alignment"]["UCR"]["total"] += 1
-                            if norm_vote == combined_ucr:
-                                leg["alignment"]["UCR"]["aligned"] += 1
+                    if liberal_majority not in ("N/A", "AUSENTE"):
+                        leg["alignment"]["LIBERAL"]["total"] += 1
+                        leg["yearly_alignment"][yr_key]["LIBERAL"]["total"] += 1
+                        if norm_vote == liberal_majority:
+                            leg["alignment"]["LIBERAL"]["aligned"] += 1
+                            leg["yearly_alignment"][yr_key]["LIBERAL"]["aligned"] += 1
 
-                    # JxC combined majority
-                    if combined_jxc not in ("N/A", "AUSENTE"):
-                        leg["yearly_alignment"][yr_key]["JxC"]["total"] += 1
-                        if norm_vote == combined_jxc:
-                            leg["yearly_alignment"][yr_key]["JxC"]["aligned"] += 1
+                    if conservador_majority not in ("N/A", "AUSENTE"):
+                        leg["alignment"]["CONSERVADOR"]["total"] += 1
+                        leg["yearly_alignment"][yr_key]["CONSERVADOR"]["total"] += 1
+                        if norm_vote == conservador_majority:
+                            leg["alignment"]["CONSERVADOR"]["aligned"] += 1
+                            leg["yearly_alignment"][yr_key]["CONSERVADOR"]["aligned"] += 1
 
-                    # JxC / PRO combined majority (store under PRO for compatibility)
-                    if combined_jxc not in ("N/A", "AUSENTE"):
-                        leg["yearly_alignment"][yr_key]["PRO"]["total"] += 1
-                        if norm_vote == combined_jxc:
-                            leg["yearly_alignment"][yr_key]["PRO"]["aligned"] += 1
-                        if year is not None and 2015 <= year <= 2023:
-                            leg["alignment"]["PRO"]["total"] += 1
-                            if norm_vote == combined_jxc:
-                                leg["alignment"]["PRO"]["aligned"] += 1
-
-                    # LLA + PRO combined majority (tracked under LLA field too)
-                    if combined_lla_pro not in ("N/A", "AUSENTE"):
-                        leg["yearly_alignment"][yr_key]["LLA"]["total"] += 1
-                        if norm_vote == combined_lla_pro:
-                            leg["yearly_alignment"][yr_key]["LLA"]["aligned"] += 1
-                        if year is not None and year >= 2024:
-                            leg["alignment"]["LLA"]["total"] += 1
-                            if norm_vote == combined_lla_pro:
-                                leg["alignment"]["LLA"]["aligned"] += 1
+                    if cd_majority not in ("N/A", "AUSENTE"):
+                        leg["alignment"]["CD"]["total"] += 1
+                        leg["yearly_alignment"][yr_key]["CD"]["total"] += 1
+                        if norm_vote == cd_majority:
+                            leg["alignment"]["CD"]["aligned"] += 1
+                            leg["yearly_alignment"][yr_key]["CD"]["aligned"] += 1
 
     return legislators

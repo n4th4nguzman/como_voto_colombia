@@ -12,8 +12,8 @@
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¿Cómo Votó? - Votaciones del Congreso Argentino</title>
-    <meta name="description" content="Visualización interactiva de cómo votan los Diputados y Senadores de la Nación Argentina, y su alineamiento con los principales partidos políticos.">
+    <title>¿Cómo Votó? - Votaciones del Congreso Colombiano</title>
+    <meta name="description" content="Visualización interactiva de cómo votan los Representantes y Senadores del Congreso de la República de Colombia, y su alineamiento con los principales partidos políticos.">
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
@@ -39,7 +39,7 @@
                     <span class="logo-icon">🗳️</span>
                     ¿Cómo Votó?
                 </h1>
-                <p class="subtitle">Votaciones del Congreso de la Nación Argentina</p>
+                <p class="subtitle">Votaciones del Congreso de la República de Colombia</p>
             </div>
         </div>
     </header>
@@ -72,13 +72,13 @@
     <section class="search-section card-outline">
         <div class="container">
             <div class="search-box">
-                <label for="search-input" class="search-label">Buscá un Diputado/a o Senador/a</label>
+                <label for="search-input" class="search-label">Buscá un Representante o Senador/a</label>
                 <div class="search-input-wrapper">
                     <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"></circle>
                         <path d="m21 21-4.35-4.35"></path>
                     </svg>
-                    <input type="text" id="search-input" placeholder="Nombre, bloque o provincia..." autocomplete="off">
+                    <input type="text" id="search-input" placeholder="Nombre, bloque o departamento..." autocomplete="off">
                     <button id="clear-search" class="clear-btn" aria-label="Limpiar búsqueda">&times;</button>
                 </div>
                 <div id="search-results" class="search-results hidden"></div>
@@ -90,49 +90,59 @@
                     <label for="filter-chamber">Cámara</label>
                     <select id="filter-chamber">
                         <option value="">Todas</option>
-                        <option value="diputados">Diputados</option>
-                        <option value="senadores">Senadores</option>
+                        <option value="camara_col">Cámara de Representantes</option>
+                        <option value="senado_col">Senado</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="filter-coalition">Coalición</label>
                     <select id="filter-coalition">
                         <option value="">Todas</option>
-                        <option value="PJ">PJ / Unión por la Patria</option>
-                        <option value="UCR">UCR / ARI</option>
-                        <option value="JxC">JxC / PRO / UCR</option>
-                        <option value="LLA">LLA</option>
+                        <option value="PACTO">Pacto Histórico</option>
+                        <option value="LIBERAL">Partido Liberal</option>
+                        <option value="CONSERVADOR">Partido Conservador</option>
+                        <option value="CD">Centro Democrático</option>
+                        <option value="CR">Cambio Radical</option>
                         <option value="OTROS">Otros</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filter-province">Provincia</label>
+                    <label for="filter-province">Departamento</label>
                     <select id="filter-province">
-                        <option value="">Todas</option>
-                        <option value="Buenos Aires">Buenos Aires</option>
-                        <option value="Ciudad Autónoma de Buenos Aires">Ciudad Autónoma de Buenos Aires</option>
-                        <option value="Catamarca">Catamarca</option>
-                        <option value="Chaco">Chaco</option>
-                        <option value="Chubut">Chubut</option>
+                        <option value="">Todos</option>
+                        <option value="Amazonas">Amazonas</option>
+                        <option value="Antioquia">Antioquia</option>
+                        <option value="Arauca">Arauca</option>
+                        <option value="Atlántico">Atlántico</option>
+                        <option value="Bogotá D.C.">Bogotá D.C.</option>
+                        <option value="Bolívar">Bolívar</option>
+                        <option value="Boyacá">Boyacá</option>
+                        <option value="Caldas">Caldas</option>
+                        <option value="Caquetá">Caquetá</option>
+                        <option value="Casanare">Casanare</option>
+                        <option value="Cauca">Cauca</option>
+                        <option value="Cesar">Cesar</option>
+                        <option value="Chocó">Chocó</option>
                         <option value="Córdoba">Córdoba</option>
-                        <option value="Corrientes">Corrientes</option>
-                        <option value="Entre Ríos">Entre Ríos</option>
-                        <option value="Formosa">Formosa</option>
-                        <option value="Jujuy">Jujuy</option>
-                        <option value="La Pampa">La Pampa</option>
-                        <option value="La Rioja">La Rioja</option>
-                        <option value="Mendoza">Mendoza</option>
-                        <option value="Misiones">Misiones</option>
-                        <option value="Neuquén">Neuquén</option>
-                        <option value="Río Negro">Río Negro</option>
-                        <option value="Salta">Salta</option>
-                        <option value="San Juan">San Juan</option>
-                        <option value="San Luis">San Luis</option>
-                        <option value="Santa Cruz">Santa Cruz</option>
-                        <option value="Santa Fe">Santa Fe</option>
-                        <option value="Santiago del Estero">Santiago del Estero</option>
-                        <option value="Tierra del Fuego">Tierra del Fuego</option>
-                        <option value="Tucumán">Tucumán</option>
+                        <option value="Cundinamarca">Cundinamarca</option>
+                        <option value="Guainía">Guainía</option>
+                        <option value="Guaviare">Guaviare</option>
+                        <option value="Huila">Huila</option>
+                        <option value="La Guajira">La Guajira</option>
+                        <option value="Magdalena">Magdalena</option>
+                        <option value="Meta">Meta</option>
+                        <option value="Nariño">Nariño</option>
+                        <option value="Norte de Santander">Norte de Santander</option>
+                        <option value="Putumayo">Putumayo</option>
+                        <option value="Quindío">Quindío</option>
+                        <option value="Risaralda">Risaralda</option>
+                        <option value="San Andrés y Providencia">San Andrés y Providencia</option>
+                        <option value="Santander">Santander</option>
+                        <option value="Sucre">Sucre</option>
+                        <option value="Tolima">Tolima</option>
+                        <option value="Valle del Cauca">Valle del Cauca</option>
+                        <option value="Vaupés">Vaupés</option>
+                        <option value="Vichada">Vichada</option>
                     </select>
                 </div>
             </div>
@@ -160,8 +170,8 @@
                         <label for="law-chamber-filter">Cámara</label>
                         <select id="law-chamber-filter">
                             <option value="">Todas</option>
-                            <option value="diputados">Diputados</option>
-                            <option value="senadores">Senadores</option>
+                            <option value="camara_col">Cámara de Representantes</option>
+                            <option value="senado_col">Senado</option>
                         </select>
                     </div>
                 </div>
@@ -196,7 +206,7 @@
                         <span class="waffle-legend-item"><span class="waffle-tile-legend tile-ABSTENCION"></span> Abstención</span>
                         <span class="waffle-legend-item"><span class="waffle-tile-legend tile-AUSENTE"></span> Ausente</span>
                     </div>
-                    <div class="law-detail-footer">comovoto.dev.ar</div>
+                    <div class="law-detail-footer">comovoto.dev.co</div>
                 </div>
             </div>
         </div>
@@ -248,18 +258,19 @@
                         <label for="rv-chamber">Cámara</label>
                         <select id="rv-chamber">
                             <option value="">Todas</option>
-                            <option value="diputados">Diputados</option>
-                            <option value="senadores">Senadores</option>
+                            <option value="camara_col">Cámara de Representantes</option>
+                            <option value="senado_col">Senado</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label for="rv-coalition">Coalición</label>
                         <select id="rv-coalition">
                             <option value="">Todas</option>
-                            <option value="PJ">PJ / UxP</option>
-                            <option value="UCR">UCR / ARI</option>
-                            <option value="JxC">JxC / PRO / UCR</option>
-                            <option value="LLA">LLA</option>
+                            <option value="PACTO">Pacto Histórico</option>
+                            <option value="LIBERAL">Partido Liberal</option>
+                            <option value="CONSERVADOR">Partido Conservador</option>
+                            <option value="CD">Centro Democrático</option>
+                            <option value="CR">Cambio Radical</option>
                             <option value="OTROS">Otros</option>
                         </select>
                     </div>
@@ -297,7 +308,7 @@
                 <div class="ranking-title-row" id="ranking-afinidad">
                     <div>
                         <h2 class="section-title">📊 Ranking de mandatos por Afinidad Política</h2>
-                        <p class="section-desc">Cada fila corresponde a uno o más mandatos por legislador, agrupado según la coalición a la que pertenecía el partido o alianza cuya lista integró el legislador en la elección. Las cantidades de votos muestran afinidad con las dos coaliciones mayoritarias de cada período para votaciones divididas. Las coaliciones son PJ (1993-2026), UCR (1983-2014), JxC (2015-2023) y LLA (2024-2026).</p>
+                        <p class="section-desc">Cada fila corresponde a uno o más mandatos por legislador, agrupado según la coalición a la que pertenecía el partido en la elección. Las cantidades de votos muestran afinidad con las coaliciones mayoritarias en votaciones divididas. Las coaliciones son Pacto Histórico, Partido Liberal, Partido Conservador y Centro Democrático.</p>
                     </div>
                 <div class="ranking-export-row">
                     <button class="btn-share" id="btn-copy-ra" title="Copiar imagen al portapapeles">
@@ -320,20 +331,21 @@
                         <label for="ra-coalition">Coalición por la que fue votado/a</label>
                         <select id="ra-coalition">
                             <option value="">Todas</option>
-                            <option value="PJ">PJ / UxP</option>
-                            <option value="UCR">UCR / ARI</option>
-                            <option value="JxC">JxC / PRO / UCR</option>
-                            <option value="LLA">LLA</option>
+                            <option value="PACTO">Pacto Histórico</option>
+                            <option value="LIBERAL">Partido Liberal</option>
+                            <option value="CONSERVADOR">Partido Conservador</option>
+                            <option value="CD">Centro Democrático</option>
+                            <option value="CR">Cambio Radical</option>
                             <option value="OTROS">Otros</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label for="ra-sort">Ordenar por</label>
                         <select id="ra-sort">
-                            <option value="vpj">Votos con PJ</option>
-                            <option value="vucr">Votos con UCR</option>
-                            <option value="vpro">Votos con JxC</option>
-                            <option value="vlla">Votos con LLA</option>
+                            <option value="vph">Votos con Pacto</option>
+                            <option value="vlib">Votos con Liberal</option>
+                            <option value="vcon">Votos con Conservador</option>
+                            <option value="vcd">Votos con CD</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -347,8 +359,8 @@
                         <label for="ra-chamber">Cámara</label>
                         <select id="ra-chamber">
                             <option value="">Todas</option>
-                            <option value="diputados">Diputados</option>
-                            <option value="senadores">Senadores</option>
+                            <option value="camara_col">Cámara de Representantes</option>
+                            <option value="senado_col">Senado</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -369,10 +381,10 @@
                             <th>#</th>
                             <th>Legislador/a</th>
                             <th>Partido</th>
-                            <th class="ranking-sortable" data-col="vpj">PJ</th>
-                            <th class="ranking-sortable" data-col="vucr">UCR</th>
-                            <th class="ranking-sortable" data-col="vpro">JxC</th>
-                            <th class="ranking-sortable" data-col="vlla">LLA</th>
+                            <th class="ranking-sortable" data-col="vph">Pacto</th>
+                            <th class="ranking-sortable" data-col="vlib">Liberal</th>
+                            <th class="ranking-sortable" data-col="vcon">Conservador</th>
+                            <th class="ranking-sortable" data-col="vcd">CD</th>
                             <th>Período</th>
                         </tr>
                     </thead>
@@ -568,7 +580,7 @@
                         <span class="waffle-legend-item"><span class="waffle-tile-legend tile-AUSENTE"></span> Ausente</span>
                         <span class="waffle-legend-item"><span class="waffle-tile-legend tile-general-legend"></span> Voto en general</span>
                     </div>
-                    <div class="waffle-card-footer">comovoto.dev.ar</div>
+                    <div class="waffle-card-footer">comovoto.dev.co</div>
                 </div>
                 <div class="votes-pagination" id="waffle-pagination"></div>
             </div>
@@ -597,10 +609,10 @@
                                 <th>Ley / Votación</th>
                                 <th>Fuente</th>
                                 <th>Voto</th>
-                                <th>PJ votó</th>
-                                <th>UCR votó</th>
-                                <th>JxC votó</th>
-                                <th>LLA votó</th>
+                                <th>Pacto votó</th>
+                                <th>Liberal votó</th>
+                                <th>Conservador votó</th>
+                                <th>CD votó</th>
                             </tr>
                         </thead>
                         <tbody id="votes-tbody"></tbody>
@@ -615,10 +627,9 @@
     <footer class="footer">
         <div class="container">
             <p>
-                Los datos provienen de
-                <a href="https://votaciones.hcdn.gob.ar/" target="_blank">votaciones.hcdn.gob.ar</a> y
-                <a href="https://www.senado.gob.ar/votaciones/actas" target="_blank">senado.gob.ar</a>.
-                La información es de dominio público. Código y sitio web por <a href="https://x.com/rquiroga777" target="_blank" rel="noopener">Rodrigo Quiroga</a>.
+                Los datos provienen del
+                <a href="https://www.congreso.gov.co/" target="_blank">Congreso de la República de Colombia</a>.
+                La información es de dominio público.
             </p>
             <p>
                 <a href="https://github.com/rquiroga7/como_voto" target="_blank">Código fuente en GitHub</a>
@@ -659,8 +670,7 @@
     <div class="waffle-card" id="leg-header-export-card" style="display:none;position:absolute;left:-9999px;top:0;width:360px;max-width:360px;">
         <div id="leg-header-export-inner"></div>
         <div class="waffle-card-footer export-footer">
-            <span id="lhe-export-date" class="export-footer-date"></span>
-            <span>comovoto.dev.ar</span>
+            <span>comovoto.dev.co</span>
         </div>
     </div>
 
@@ -671,7 +681,7 @@
         <img id="alignment-export-img" class="aec-chart-img" alt="Alineamiento partidario por a&#241;o">
         <div class="waffle-card-footer export-footer">
             <span id="align-export-date" class="export-footer-date"></span>
-            <span>comovoto.dev.ar</span>
+            <span>comovoto.dev.co</span>
         </div>
     </div>
 
@@ -682,7 +692,7 @@
         <img id="yearly-export-img" class="aec-chart-img" alt="Votaciones por a&#241;o">
         <div class="waffle-card-footer export-footer">
             <span id="yearly-export-date" class="export-footer-date"></span>
-            <span>comovoto.dev.ar</span>
+            <span>comovoto.dev.co</span>
         </div>
     </div>
 
@@ -695,7 +705,7 @@
         <div id="info-export-content"></div>
         <div class="waffle-card-footer export-footer">
             <span id="info-export-date" class="export-footer-date"></span>
-            <span>comovoto.dev.ar</span>
+            <span>comovoto.dev.co</span>
         </div>
     </div>
 

@@ -55,45 +55,56 @@ def practical_year_range(years_list: list[str]) -> tuple[str | None, str | None]
     return str(start), str(ints[-1])
 
 
+def _reverse_name_order(name: str) -> str:
+    """Swap first-half and second-half of a name to handle Nombre↔Apellido reordering.
+
+    The Cámara website stores names as 'Nombre1 Nombre2 Apellido1 Apellido2' while
+    the PDFs (and thus the DB) store them as 'Apellido1 Apellido2 Nombre1 Nombre2'.
+    For 4+-word names this uses a midpoint split; for 3 words it shifts by 1; for
+    2 words it reverses the pair.
+    """
+    parts = name.split()
+    if len(parts) >= 4:
+        mid = len(parts) // 2
+        return " ".join(parts[mid:] + parts[:mid])
+    elif len(parts) == 3:
+        return " ".join(parts[1:] + parts[:1])
+    elif len(parts) == 2:
+        return " ".join(reversed(parts))
+    return name
+
+
 def load_photo_maps() -> dict[str, str]:
     """Carga mapeos nombre->archivo de foto generados por el scraper."""
     photo_map: dict[str, str] = {}
 
-    dip_photos_path = DATA_DIR / "diputados_photos.json"
-    if dip_photos_path.exists():
-        try:
-            with open(dip_photos_path, "r", encoding="utf-8") as handle:
-                dip_photos = json.load(handle)
-            for name, filename in dip_photos.items():
-                name_key = normalize_name(name)
-                photo_map[name_key] = f"fotos/{filename}"
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    sen_photos_path = DATA_DIR / "senadores_photos.json"
-    if sen_photos_path.exists():
-        try:
-            with open(sen_photos_path, "r", encoding="utf-8") as handle:
-                sen_photos = json.load(handle)
-            for name, filename in sen_photos.items():
-                name_key = normalize_name(name)
-                if name_key not in photo_map:
-                    photo_map[name_key] = f"fotos/{filename}"
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    dip_db_path = DATA_DIR / "diputados.json"
-    if dip_db_path.exists():
-        db = ConsolidatedDB(dip_db_path)
-        db.load()
-        for name_idx_str, photo_id in db.photo_ids.items():
-            name_idx = int(name_idx_str)
-            if name_idx < len(db.names):
-                name = db.names[name_idx]
-                name_key = normalize_name(name)
-                filename = f"fotos/dip_{photo_id}.jpg"
-                if name_key not in photo_map:
-                    photo_map[name_key] = filename
+    for photo_file in ["representantes_photos.json", "senadores_col_photos.json"]:
+        photos_path = DATA_DIR / photo_file
+        is_rep = photo_file.startswith("representantes")
+        if photos_path.exists():
+            try:
+                with open(photos_path, "r", encoding="utf-8") as handle:
+                    photos = json.load(handle)
+                for name, filename in photos.items():
+                    name_key = normalize_name(name)
+                    photo_path = f"fotos/{filename}"
+                    if name_key not in photo_map:
+                        photo_map[name_key] = photo_path
+                    # For representatives, the website uses Nombre-first ordering
+                    # while the DB (from PDFs) uses Apellido-first.  Add both a
+                    # reversed-order spaced key and a no-space variant so either
+                    # format can match.
+                    if is_rep:
+                        rev_key = normalize_name(_reverse_name_order(name))
+                        for key in (rev_key, rev_key.replace(" ", ""), name_key.replace(" ", "")):
+                            if key not in photo_map:
+                                photo_map[key] = photo_path
+                    else:
+                        no_space_key = name_key.replace(" ", "")
+                        if no_space_key not in photo_map:
+                            photo_map[no_space_key] = photo_path
+            except (json.JSONDecodeError, OSError):
+                pass
 
     # Propagate photos across aliases: if the canonical key has no photo but
     # its alias does (or vice-versa), copy it over so merged records get a photo.

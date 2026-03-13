@@ -32,7 +32,6 @@ from como_voto_generator import (
     extract_section_label,
     extract_year,
     generate_site_data,
-    generate_site_data_colombia,  # Placeholder for Colombia-specific data generation
     get_common_name,
     is_contested,
     load_all_votaciones_from_db,
@@ -71,7 +70,6 @@ __all__ = [
     "extract_section_label",
     "extract_year",
     "generate_site_data",
-    "generate_site_data_colombia",  # Placeholder for Colombia-specific data generation
     "get_common_name",
     "is_contested",
     "load_all_votaciones_from_db",

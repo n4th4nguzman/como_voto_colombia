@@ -7,92 +7,82 @@ import unicodedata
 from .common import DATA_DIR, log
 
 # ---------------------------------------------------------------------------
-# Party classification for law-search breakdown
+# Party classification for law-search breakdown (Colombia)
 # ---------------------------------------------------------------------------
-# Unlike classify_bloc() (PJ/PRO/LLA/OTHER coalitions used for alignment
-# tracking), this classifies into the five actual major parties by their
-# real bloc name at the time of voting.
+# Classifies blocs into the main Colombian parties.
+# Return values: PH, LIB, CON, CD, CR, OTROS
 
-# Exact phrases that must NOT match PJ keywords (checked before _PJ_PARTY_KW)
-_OTROS_OVERRIDE_PHRASES = [
-    "peronismo federal",
+_PH_PARTY_KW = [
+    "pacto historico",
+    "pacto histórico",
+    "colombia humana",
+    "union patriotica",
+    "unión patriótica",
+    "polo democratico",
+    "polo democrático",
+    "marcha patriotica",
+    "marcha patriótica",
+    "comunes",
+    "mais",
+    "colombia humana",
+    "alianza verde",
+    "verde",
 ]
-
-_PJ_PARTY_KW = [
-    "justicialista",
-    "frente de todos",
-    "frente para la victoria",
-    "unión por la patria",
-    "union por la patria",
-    "frente renovador",
-    "peronismo",
-    "peronista",
-    "frente cívico por santiago",
-    "frente civico por santiago",
-    "movimiento popular neuquino",
-    "pj ",
-    "pj frente",
-    "unidad ciudadana",
-    "frente nacional y popular",
+_LIBERAL_PARTY_KW = [
+    "partido liberal",
+    "liberal colombiano",
+    "p. liberal",
 ]
-_UCR_PARTY_KW = [
-    "ucr",
-    "unión cívica radical",
-    "union civica radical",
-    "radical",
-    "evolución radical",
-    "evolucion radical",
-    "democracia para siempre",
+_CONSERVADOR_PARTY_KW = [
+    "partido conservador",
+    "conservador colombiano",
+    "colombia conservadora",
+    "p. conservador",
 ]
-_PRO_PARTY_KW = [
-    "propuesta republicana",
-    "union pro",
-    "unión pro",
-    "frente pro",
-    "cambiemos",
-    "juntos por el cambio",
+_CD_PARTY_KW = [
+    "centro democratico",
+    "centro democrático",
+    "c. democratico",
+    "c. democrático",
 ]
-_LLA_PARTY_KW = ["la libertad avanza", "libertad avanza"]
-_CC_PARTY_KW = ["coalición cívica", "coalicion civica", "a.r.i"]
-
-_PRO_WORD_RE = re.compile(r"\bpro\b")
+_CR_PARTY_KW = [
+    "cambio radical",
+    "c. radical",
+]
 
 # ---------------------------------------------------------------------------
 # Bloc -> coalition mapping (for legislator alignment tracking)
 # ---------------------------------------------------------------------------
 _BLOC_COALITION_MAP: dict[str, str] | None = None
 
-_PJ_COALITION_KW = [
-    "justicialista",
-    "frente de todos",
-    "frente para la victoria",
-    "unión por la patria",
-    "union por la patria",
-    "frente renovador",
-    "peronismo",
-    "peronista",
-    "frente cívico por santiago",
-    "frente civico por santiago",
-    "movimiento popular neuquino",
-    "bloque justicialista",
-    "pj ",
+_PACTO_COALITION_KW = [
+    "pacto historico",
+    "pacto histórico",
+    "colombia humana",
+    "union patriotica",
+    "unión patriótica",
+    "polo democratico",
+    "polo democrático",
+    "comunes",
+    "mais",
+    "alianza verde",
+    "verde",
 ]
-_PRO_COALITION_KW = [
-    "pro ",
-    "propuesta republicana",
-    "cambiemos",
-    "juntos por el cambio",
-    "juntos por el cambio federal",
-    "ucr",
-    "unión cívica radical",
-    "union civica radical",
-    "coalición cívica",
-    "coalicion civica",
-    "evolución radical",
-    "evolucion radical",
+_LIBERAL_COALITION_KW = [
+    "partido liberal",
+    "liberal colombiano",
 ]
-_LLA_COALITION_KW = [
-    "la libertad avanza",
+_CONSERVADOR_COALITION_KW = [
+    "partido conservador",
+    "conservador colombiano",
+    "colombia conservadora",
+]
+_CD_COALITION_KW = [
+    "centro democratico",
+    "centro democrático",
+]
+_CR_COALITION_KW = [
+    "cambio radical",
 ]
 
 
@@ -128,15 +118,21 @@ def _load_bloc_coalition_map() -> dict[str, str]:
 def _classify_bloc_coalition_fallback(bloc_name: str) -> str:
     """Keyword fallback used when a bloc is missing from the mapping file."""
     name = bloc_name.lower().strip()
-    for keyword in _PJ_COALITION_KW:
+    for keyword in _PACTO_COALITION_KW:
         if keyword in name:
-            return "PJ"
-    for keyword in _PRO_COALITION_KW:
+            return "PACTO"
+    for keyword in _LIBERAL_COALITION_KW:
         if keyword in name:
-            return "PRO"
-    for keyword in _LLA_COALITION_KW:
+            return "LIBERAL"
+    for keyword in _CONSERVADOR_COALITION_KW:
         if keyword in name:
-            return "LLA"
+            return "CONSERVADOR"
+    for keyword in _CD_COALITION_KW:
+        if keyword in name:
+            return "CD"
+    for keyword in _CR_COALITION_KW:
+        if keyword in name:
+            return "CR"
     return "OTROS"
 
 
@@ -237,69 +233,82 @@ def extract_section_label(title: str, vtype: str = "") -> str:
 
 
 def classify_bloc_party(bloc_name: str) -> str:
-    """Clasifica un bloque en uno de cinco partidos reales u OTROS."""
+    """Clasifica un bloque en uno de los partidos colombianos principales u OTROS."""
     name = bloc_name.lower().strip()
-    for phrase in _OTROS_OVERRIDE_PHRASES:
-        if phrase in name:
-            return "OTROS"
-    for keyword in _PJ_PARTY_KW:
+    for keyword in _PACTO_COALITION_KW:
         if keyword in name:
-            return "PJ"
-    for keyword in _UCR_PARTY_KW:
+            return "PH"
+    for keyword in _PH_PARTY_KW:
         if keyword in name:
-            return "UCR"
-    if _PRO_WORD_RE.search(name):
-        return "PRO"
-    for keyword in _PRO_PARTY_KW:
+            return "PH"
+    for keyword in _LIBERAL_PARTY_KW:
         if keyword in name:
-            return "PRO"
-    for keyword in _LLA_PARTY_KW:
+            return "LIB"
+    for keyword in _CONSERVADOR_PARTY_KW:
         if keyword in name:
-            return "LLA"
-    for keyword in _CC_PARTY_KW:
+            return "CON"
+    for keyword in _CD_PARTY_KW:
         if keyword in name:
-            return "CC"
+            return "CD"
+    for keyword in _CR_PARTY_KW:
+        if keyword in name:
+            return "CR"
     return "OTROS"
 
 
 # ---------------------------------------------------------------------------
-# Province name normalization
+# Department name normalization (Colombia)
 # ---------------------------------------------------------------------------
 _PROVINCE_CANONICAL: dict[str, str] = {
-    "buenos aires": "Buenos Aires",
-    "c.a.b.a.": "CABA",
-    "capital federal": "CABA",
-    "ciudad autonoma de buenos aires": "CABA",
-    "ciudad autónoma de buenos aires": "CABA",
-    "catamarca": "Catamarca",
-    "chaco": "Chaco",
-    "chubut": "Chubut",
-    "corrientes": "Corrientes",
+    "amazonas": "Amazonas",
+    "antioquia": "Antioquia",
+    "arauca": "Arauca",
+    "atlantico": "Atlántico",
+    "atlántico": "Atlántico",
+    "bogota": "Bogotá D.C.",
+    "bogotá": "Bogotá D.C.",
+    "bogota d.c.": "Bogotá D.C.",
+    "bogotá d.c.": "Bogotá D.C.",
+    "bolivar": "Bolívar",
+    "bolívar": "Bolívar",
+    "boyaca": "Boyacá",
+    "boyacá": "Boyacá",
+    "caldas": "Caldas",
+    "caqueta": "Caquetá",
+    "caquetá": "Caquetá",
+    "casanare": "Casanare",
+    "cauca": "Cauca",
+    "cesar": "Cesar",
+    "choco": "Chocó",
+    "chocó": "Chocó",
     "cordoba": "Córdoba",
     "córdoba": "Córdoba",
-    "entre rios": "Entre Ríos",
-    "entre ríos": "Entre Ríos",
-    "formosa": "Formosa",
-    "jujuy": "Jujuy",
-    "la pampa": "La Pampa",
-    "la rioja": "La Rioja",
-    "mendoza": "Mendoza",
-    "misiones": "Misiones",
-    "neuquen": "Neuquén",
-    "neuquén": "Neuquén",
-    "rio negro": "Río Negro",
-    "río negro": "Río Negro",
-    "salta": "Salta",
-    "san juan": "San Juan",
-    "san luis": "San Luis",
-    "santa cruz": "Santa Cruz",
-    "santa fe": "Santa Fe",
-    "santiago del estero": "Santiago del Estero",
-    "tierra del fuego": "Tierra del Fuego",
-    "tierra del fuego, antartida e islas del atlantico sur": "Tierra del Fuego",
-    "tierra del fuego, antártida e islas del atlántico sur": "Tierra del Fuego",
-    "tucuman": "Tucumán",
-    "tucumán": "Tucumán",
+    "cundinamarca": "Cundinamarca",
+    "guainia": "Guainía",
+    "guainía": "Guainía",
+    "guaviare": "Guaviare",
+    "huila": "Huila",
+    "la guajira": "La Guajira",
+    "magdalena": "Magdalena",
+    "meta": "Meta",
+    "narino": "Nariño",
+    "nariño": "Nariño",
+    "norte de santander": "Norte de Santander",
+    "putumayo": "Putumayo",
+    "quindio": "Quindío",
+    "quindío": "Quindío",
+    "risaralda": "Risaralda",
+    "san andres y providencia": "San Andrés y Providencia",
+    "san andrés y providencia": "San Andrés y Providencia",
+    "santander": "Santander",
+    "sucre": "Sucre",
+    "tolima": "Tolima",
+    "valle del cauca": "Valle del Cauca",
+    "vaupes": "Vaupés",
+    "vaupés": "Vaupés",
+    "vichada": "Vichada",
+    "circunscripcion especial": "Circunscripción Especial",
+    "circunscripción especial": "Circunscripción Especial",
 }
 
 

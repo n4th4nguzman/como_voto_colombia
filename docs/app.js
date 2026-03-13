@@ -192,7 +192,7 @@ function chamberBadges(chamberStr) {
     if (!chamberStr) return "";
     const parts = chamberStr.split("+");
     return parts.map((c) => {
-        const label = c === "diputados" ? "Dip." : "Sen.";
+        const label = c === "camara_col" ? "Rep." : "Sen.";
         return `<span class="badge badge-${c}">${label}</span>`;
     }).join("");
 }
@@ -223,12 +223,9 @@ function onLawSearchInput() {
 
     let results = lawsData;
 
-    // When no filters and no query, show notable laws on focus
+    // When no filters and no query, show all laws on focus
+    // (cn-tagged notable laws are sorted first at data build time)
     const hasFilter = yearVal || chamberVal;
-    if (!query && !hasFilter) {
-        // Show notable (common_name) laws by default
-        results = results.filter((l) => l.cn);
-    }
 
     if (yearVal) {
         results = results.filter((l) => String(l.y) === yearVal);
@@ -254,10 +251,10 @@ function onLawSearchInput() {
 
     dropdown.innerHTML = results.map((l, idx) => {
         const notable = l.cn ? `<span class="law-dropdown-notable">⭐</span>` : "";
-        const chamberBadge = l.ch === "diputados"
-            ? `<span class="badge badge-diputados">Dip.</span>`
-            : l.ch === "senadores"
-            ? `<span class="badge badge-senadores">Sen.</span>`
+        const chamberBadge = l.ch === "camara_col"
+            ? `<span class="badge badge-camara_col">Rep.</span>`
+            : l.ch === "senado_col"
+            ? `<span class="badge badge-senado_col">Sen.</span>`
             : "";
         const yearBadge = l.y ? `<span class="law-dropdown-year">${l.y}</span>` : "";
         return `
@@ -291,11 +288,11 @@ function selectLaw(law, updateUrl = true) {
 
     // Meta: year, chamber, # votaciones
     const metaEl = document.getElementById("law-detail-meta");
-    const chamberLabel = law.ch === "diputados" ? "Diputados" : law.ch === "senadores" ? "Senadores" : "";
+    const chamberLabel = law.ch === "camara_col" ? "Cámara" : law.ch === "senado_col" ? "Senado" : "";
     const parts = [];
     if (law.y) parts.push(`<span class="badge">${law.y}</span>`);
     if (chamberLabel) {
-        const cls = law.ch === "diputados" ? "badge-diputados" : "badge-senadores";
+        const cls = law.ch === "camara_col" ? "badge-camara_col" : "badge-senado_col";
         parts.push(`<span class="badge ${cls}">${chamberLabel}</span>`);
     }
     if (law.vs && law.vs.length > 1) parts.push(`<span class="badge">${law.vs.length} votaciones</span>`);
@@ -326,12 +323,12 @@ function selectLaw(law, updateUrl = true) {
 
 function renderLawVotacion(v, idx, totalCount) {
     const coalitions = [
-        { key: "pj",  label: "PJ / UxP",  cls: "bar-pj" },
-        { key: "ucr", label: "UCR",       cls: "bar-ucr" },
-        { key: "pro", label: "JxC",       cls: "bar-pro" },
-        { key: "lla", label: "LLA",       cls: "bar-lla" },
-        { key: "cc",  label: "CC - ARI",  cls: "bar-cc" },
-        { key: "oth", label: "Otros",     cls: "bar-oth" },
+        { key: "ph",  label: "Pacto Histórico",   cls: "bar-pj" },
+        { key: "lib", label: "Liberal",            cls: "bar-ucr" },
+        { key: "con", label: "Conservador",         cls: "bar-pro" },
+        { key: "cd",  label: "Centro Democrático", cls: "bar-lla" },
+        { key: "cr",  label: "Cambio Radical",      cls: "bar-cc" },
+        { key: "oth", label: "Otros",               cls: "bar-oth" },
     ];
 
     // Header: section label + full title
@@ -461,12 +458,12 @@ const _votesYearCache = {};   // { year: { n: [...], v: {...} } }
 const _votesYearPromise = {}; // { year: Promise }
 
 const PARTY_LABELS = {
-    pj: "PJ / UxP", ucr: "UCR", pro: "JxC",
-    lla: "LLA", cc: "CC - ARI", oth: "Otros",
+    ph: "Pacto Histórico", lib: "Liberal", con: "Conservador",
+    cd: "Centro Democrático", cr: "CR", oth: "Otros",
 };
 const VOTE_TYPE_LABELS = ["Afirmativo", "Negativo", "Abstención", "Ausente"];
 const VOTE_TYPE_CLASSES = ["voter-afirm", "voter-neg", "voter-abst", "voter-aus"];
-const ALL_PARTY_KEYS = ["pj", "ucr", "pro", "lla", "cc", "oth"];
+const ALL_PARTY_KEYS = ["ph", "lib", "con", "cd", "cr", "oth"];
 
 function loadVotesYear(year) {
     if (_votesYearCache[year]) return Promise.resolve(_votesYearCache[year]);
@@ -611,7 +608,7 @@ document.addEventListener("click", function (e) {
 // Ranking 1: Votes
 let rvPage = 1, rvPageSize = 5, rvSortCol = "tv", rvSortAsc = false;
 // Ranking 2: Alignment
-let raPage = 1, raPageSize = 5, raSortCol = "vpj", raSortAsc = false;
+let raPage = 1, raPageSize = 5, raSortCol = "vph", raSortAsc = false;
 
 function renderRankingTable(prefix, sortCol, asc, columns, cellRenderer, dataSource) {
     const chamberFilter = document.getElementById(prefix + "-chamber")?.value || "";
@@ -620,17 +617,14 @@ function renderRankingTable(prefix, sortCol, asc, columns, cellRenderer, dataSou
     let page_ref = prefix === "rv" ? { get: () => rvPage, set: v => { rvPage = v; } }
                                     : { get: () => raPage, set: v => { raPage = v; } };
 
-    // For the alignment ranking (ra), map grouped coalition filters to actual co_electoral values
-    // JxC includes PRO and JxC (2015-2023 Cambiemos/Juntos por el Cambio era)
-    // LLA includes LLA and PRO (2024+ PRO merged into LLA)
-    // UCR only includes mandates up to 2013 (before UCR joined JxC in 2015)
-    // UCR 2024+ mandates are classified as OTROS
+    // For the alignment ranking (ra), map grouped coalition filters to actual co values
     const raCoalitionMap = {
-        "JxC": ["JxC", "PRO"],
-        "LLA": ["LLA", "PRO"],
-        "PJ": ["PJ"],
-        "UCR": ["UCR"],  // Only mandates up to 2013 (filtered below)
-        "OTROS": ["OTROS", "UCR"],  // Includes UCR 2024+ and other small parties
+        "PACTO": ["PACTO"],
+        "LIBERAL": ["LIBERAL"],
+        "CONSERVADOR": ["CONSERVADOR"],
+        "CD": ["CD"],
+        "CR": ["CR"],
+        "OTROS": ["OTROS"],
     };
 
     let filtered = (dataSource || legislatorsData).filter(l => {
@@ -638,24 +632,8 @@ function renderRankingTable(prefix, sortCol, asc, columns, cellRenderer, dataSou
         if (chamberFilter && !l.c.includes(chamberFilter)) return false;
         if (coalitionFilter) {
             if (prefix === "ra") {
-                // For alignment ranking, check if l.co matches any of the mapped values
                 const allowedCos = raCoalitionMap[coalitionFilter] || [coalitionFilter];
                 if (!allowedCos.includes(l.co)) return false;
-                
-                // Special handling for UCR filter: only show mandates up to 2013
-                if (coalitionFilter === "UCR" && l.by_co) {
-                    const ucrData = l.by_co["UCR"];
-                    if (ucrData && ucrData.yf && ucrData.yf >= 2014) {
-                        return false;  // Skip UCR mandates starting 2014+
-                    }
-                }
-                
-                // Special handling for OTROS filter: exclude UCR mandates (they have their own filter)
-                if (coalitionFilter === "OTROS" && l.by_co && l.by_co["UCR"]) {
-                    // Keep only if the mandate is not UCR
-                    const hasNonUcrCo = Object.keys(l.by_co).some(co => co !== "UCR");
-                    if (!hasNonUcrCo) return false;
-                }
             } else {
                 // For votes ranking, exact match
                 if (l.co !== coalitionFilter) return false;
@@ -755,7 +733,7 @@ function renderRankingVotes() {
     );
 }
 
-const COALITION_LABELS = { PJ: "PJ / UxP", UCR: "UCR / ARI", PRO: "JxC", LLA: "LLA", OTROS: "Otros" };
+const COALITION_LABELS = { PACTO: "Pacto Histórico", LIBERAL: "Partido Liberal", CONSERVADOR: "Partido Conservador", CD: "Centro Democrático", CR: "Cambio Radical", OTROS: "Otros" };
 
 function renderRankingAlignment() {
     const fmt = v => v !== null && v !== undefined ? v : "–";
@@ -772,10 +750,10 @@ function renderRankingAlignment() {
                 p: l.p,
                 b: vals.b || l.b,
                 co: co,
-                vpj: vals.vpj,
-                vucr: vals.vucr,
-                vpro: vals.vpro,
-                vlla: vals.vlla,
+                vph: vals.vph,
+                vlib: vals.vlib,
+                vcon: vals.vcon,
+                vcd: vals.vcd,
                 tv: vals.tv,
                 yf: vals.yf,
                 yt: vals.yt,
@@ -783,13 +761,13 @@ function renderRankingAlignment() {
         }
     }
     renderRankingTable("ra", raSortCol, raSortAsc,
-        ["vpj", "vucr", "vpro", "vlla"],
+        ["vph", "vlib", "vcon", "vcd"],
         l => {
             const period = (l.yf && l.yt) ? `${l.yf}–${l.yt}` : "–";
-            return `<td class="ranking-cell-num">${fmt(l.vpj)}</td>
-              <td class="ranking-cell-num">${fmt(l.vucr)}</td>
-              <td class="ranking-cell-num">${fmt(l.vpro)}</td>
-              <td class="ranking-cell-num">${fmt(l.vlla)}</td>
+            return `<td class="ranking-cell-num">${fmt(l.vph)}</td>
+              <td class="ranking-cell-num">${fmt(l.vlib)}</td>
+              <td class="ranking-cell-num">${fmt(l.vcon)}</td>
+              <td class="ranking-cell-num">${fmt(l.vcd)}</td>
               <td class="ranking-cell-num">${period}</td>`;
         },
         expanded
@@ -799,7 +777,7 @@ function renderRankingAlignment() {
 // Column label maps for export titles
 const RANKING_COL_LABELS = {
     tv: "Total de Votaciones", pres: "Presentismo", aus: "Ausencias", abst: "Abstenciones",
-    vpj: "Votos con PJ", vucr: "Votos con UCR", vpro: "Votos con JxC", vlla: "Votos con LLA",
+    vph: "Votos con Pacto", vlib: "Votos con Liberal", vcon: "Votos con Conservador", vcd: "Votos con CD",
 };
 
 function buildRankingExportTitle(prefix) {
@@ -1072,10 +1050,10 @@ function renderLegislatorDetail(data) {
     const chamberBadge = document.getElementById("leg-chamber");
     const chambers = data.chambers || [data.chamber];
     if (chambers.length > 1) {
-        chamberBadge.textContent = "Dip. + Sen.";
+        chamberBadge.textContent = "Rep. + Sen.";
         chamberBadge.className = "leg-chamber badge badge-both";
     } else {
-        chamberBadge.textContent = chambers[0] === "diputados" ? "Diputado/a" : "Senador/a";
+        chamberBadge.textContent = chambers[0] === "camara_col" ? "Representante" : "Senador/a";
         chamberBadge.className = `leg-chamber badge badge-${chambers[0]}`;
     }
 
@@ -1085,27 +1063,24 @@ function renderLegislatorDetail(data) {
 
     document.getElementById("leg-province").textContent = data.province;
 
-    // Alignment summary — 3-column era grid (1993–2014 / 2015–2023 / 2024–2026)
+    // Alignment summary — 2-column era grid (Era Duque 2018–2022 / Era Petro 2022–2026)
     // Rendered into the standalone card below the Mandatos card.
     const alignSummary = document.getElementById("leg-alignment-summary");
     const alignCard    = document.getElementById("leg-alignment-card");
     alignSummary.innerHTML = "";
 
     const ERA_DEFS = [
-        { label: "1993–2014", key: "1993-2014",
-          opp: { key: "UCR", label: "UCR / ARI",       cls: "alignment-ucr" } },
-        { label: "2015–2023", key: "2015-2023",
-          opp: { key: "PRO", label: "JxC",             cls: "alignment-pro" } },
-        { label: "2024–2026", key: "2024-2026",
-          opp: { key: "LLA", label: "LLA",             cls: "alignment-lla" } },
+        { label: "Era Duque (2018–2022)", key: "2018-2022",
+          opp: { key: "CD",    label: "Centro Democrático", cls: "alignment-lla" } },
+        { label: "Era Petro (2022–2026)", key: "2022-2026",
+          opp: { key: "PACTO", label: "Pacto Histórico",    cls: "alignment-ucr" } },
     ];
 
     const eraAl = data.era_alignment || {};
     // Only show the card if at least one era has data
     const hasAnyEraData = ERA_DEFS.some(era => {
         const ed = eraAl[era.key] || {};
-        return ed["PJ"] !== null && ed["PJ"] !== undefined
-            || ed[era.opp.key] !== null && ed[era.opp.key] !== undefined;
+        return ed[era.opp.key] !== null && ed[era.opp.key] !== undefined;
     });
     if (alignCard) alignCard.style.display = hasAnyEraData ? "block" : "none";
 
@@ -1113,17 +1088,12 @@ function renderLegislatorDetail(data) {
     gridEl.className = "alignment-grid-3col";
     for (const era of ERA_DEFS) {
         const eraData = eraAl[era.key] || {};
-        const pjPct  = eraData["PJ"]  ?? null;
         const oppPct = eraData[era.opp.key] ?? null;
         const fmt    = v => v !== null ? v + "%" : "N/A";
         const col    = document.createElement("div");
         col.className = "alignment-era-col";
         col.innerHTML = `
             <div class="alignment-era-label">${era.label}</div>
-            <div class="alignment-card alignment-pj">
-                <div class="alignment-label">PJ / FdT / UxP</div>
-                <div class="alignment-value">${fmt(pjPct)}</div>
-            </div>
             <div class="alignment-card ${era.opp.cls}">
                 <div class="alignment-label">${era.opp.label}</div>
                 <div class="alignment-value">${fmt(oppPct)}</div>
@@ -1161,8 +1131,8 @@ function renderLegislatorDetail(data) {
 
     const termsList = document.getElementById("leg-terms-list");
     if (terms.length > 0) {
-        const chLabel = (ch) => ch === "diputados" ? "Diputado/a" : "Senador/a";
-        const chCls   = (ch) => ch === "diputados" ? "badge-diputados" : "badge-senadores";
+        const chLabel = (ch) => ch === "camara_col" ? "Representante" : "Senador/a";
+        const chCls   = (ch) => ch === "camara_col" ? "badge-camara_col" : "badge-senado_col";
         const rows = terms.map((t, idx) => {
             const period = t.yf === t.yt ? t.yf : `${t.yf}\u2013${t.yt}`;
             // Per-term presentismo: sum yearly_stats for years within [yf, yt]
@@ -1210,7 +1180,7 @@ function renderLegislatorDetail(data) {
             <div class="waffle-card-name-text">${escapeHtml(data.name)}</div>
         </div>`;
 
-    const chamberLabel = chambers.length > 1 ? "HCD + HCS" : (chambers[0] === "diputados" ? "HCD" : "HCS");
+    const chamberLabel = chambers.length > 1 ? "CdR + Sen" : (chambers[0] === "camara_col" ? "CdR" : "Sen");
     document.getElementById("waffle-card-meta").innerHTML = `
         <span class="badge badge-${chambers[0]}">${chamberLabel}</span>
         <span class="badge badge-${data.coalition.toLowerCase()}">${shortPartyName(data.bloc)}</span>
@@ -1428,11 +1398,7 @@ function showVotePopup(lawName, vote, lawYear) {
     const linkRow = document.getElementById("vote-popup-link-row");
     const linkEl = document.getElementById("vote-popup-link");
     let href = vote.url || "";
-    if (!href && vote.ch === "diputados" && vote.vid) {
-        href = `https://votaciones.hcdn.gob.ar/votacion/${vote.vid}`;
-    } else if (!href && vote.ch === "senadores" && vote.vid) {
-        href = `https://www.senado.gob.ar/votaciones/detalleActa/${vote.vid}`;
-    }
+    // Colombian vote source links come from vote.url directly
     if (href) {
         linkEl.href = href;
         linkRow.style.display = "";
@@ -1463,8 +1429,8 @@ const isMobile = () =>
 function populateExportHeader(headerEl, d) {
     const chambers = d.chambers || [d.chamber];
     const chamberLabel = chambers.length > 1
-        ? "Dip. + Sen."
-        : chambers[0] === "diputados" ? "Diputado/a" : "Senador/a";
+        ? "Rep. + Sen."
+        : chambers[0] === "camara_col" ? "Representante" : "Senador/a";
     const photoHtml = d.photo
         ? `<img src="${d.photo}" class="aec-photo" alt="" crossorigin="anonymous">`
         : `<div class="aec-photo-placeholder"></div>`;
@@ -1785,32 +1751,25 @@ async function exportLegHeaderCard(btnId, mode) {
     const d = currentDetail;
     const chambers = d.chambers || [d.chamber];
     const chamberLabel = chambers.length > 1
-        ? "Dip. + Sen."
-        : chambers[0] === "diputados" ? "Diputado/a" : "Senador/a";
+        ? "Rep. + Sen."
+        : chambers[0] === "camara_col" ? "Representante" : "Senador/a";
     const photoHtml = d.photo
         ? `<img src="${d.photo}" class="aec-photo" alt="" crossorigin="anonymous">`
         : `<div class="aec-photo-placeholder"></div>`;
 
     const ERA_DEFS_EXP = [
-        { label: "1993\u20132014", key: "1993-2014",
-          opp: { key: "UCR", label: "UCR / ARI",        cls: "alignment-ucr" } },
-        { label: "2015\u20132023", key: "2015-2023",
-          opp: { key: "PRO", label: "JxC / PRO / UCR",  cls: "alignment-pro" } },
-        { label: "2024\u20132026", key: "2024-2026",
-          opp: { key: "LLA", label: "LLA / PRO",         cls: "alignment-lla" } },
+        { label: "Era Duque (2018\u20132022)", key: "2018-2022",
+          opp: { key: "CD",    label: "Centro Democr\u00e1tico", cls: "alignment-lla" } },
+        { label: "Era Petro (2022\u20132026)", key: "2022-2026",
+          opp: { key: "PACTO", label: "Pacto Hist\u00f3rico",     cls: "alignment-ucr" } },
     ];
     const eraAl = d.era_alignment || {};
     const alignGridCols = ERA_DEFS_EXP.map((era) => {
         const eraData = eraAl[era.key] || {};
-        const pjPct  = eraData["PJ"]  ?? null;
         const oppPct = eraData[era.opp.key] ?? null;
         const fmt    = v => v !== null ? v + "\u00a0%" : "N/A";
         return `<div class="alignment-era-col">
             <div class="alignment-era-label">${era.label}</div>
-            <div class="alignment-card alignment-pj">
-                <div class="alignment-label">PJ / FdT / UxP</div>
-                <div class="alignment-value">${fmt(pjPct)}</div>
-            </div>
             <div class="alignment-card ${era.opp.cls}">
                 <div class="alignment-label">${era.opp.label}</div>
                 <div class="alignment-value">${fmt(oppPct)}</div>
@@ -2000,10 +1959,10 @@ function renderAlignmentChart(data) {
         return;
     }
 
-    const pjData = years.map((y) => data.yearly_alignment[y]?.PJ ?? null);
-    const ucrData = years.map((y) => data.yearly_alignment[y]?.UCR ?? null);
-    const proData = years.map((y) => data.yearly_alignment[y]?.PRO ?? null);
-    const llaData = years.map((y) => data.yearly_alignment[y]?.LLA ?? null);
+    const phData  = years.map((y) => data.yearly_alignment[y]?.PACTO        ?? null);
+    const libData  = years.map((y) => data.yearly_alignment[y]?.LIBERAL      ?? null);
+    const conData  = years.map((y) => data.yearly_alignment[y]?.CONSERVADOR  ?? null);
+    const cdData   = years.map((y) => data.yearly_alignment[y]?.CD           ?? null);
 
     // Centralized point sizing so legend markers match plotted points
     const POINT_RADIUS = 4;
@@ -2018,8 +1977,8 @@ function renderAlignmentChart(data) {
             labels: years,
             datasets: [
                 {
-                    label: "PJ / UxP / FdT",
-                    data: pjData,
+                    label: "Pacto Histórico",
+                    data: phData,
                     borderColor: "#1e88e5",
                     backgroundColor: "rgba(30, 136, 229, 0.08)",
                     borderWidth: 2.5,
@@ -2031,23 +1990,23 @@ function renderAlignmentChart(data) {
                     spanGaps: true,
                     clip: false,
                 },
-                    {
-                        label: "UCR / ARI",
-                        data: ucrData,
-                        borderColor: "#ef4444",
-                        backgroundColor: "rgba(239,68,68,0.06)",
-                        borderWidth: 2.5,
-                        pointStyle: 'circle',
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: false,
-                        spanGaps: true,
-                        clip: false,
-                    },
                 {
-                    label: "JxC / PRO / UCR",
-                    data: proData,
+                    label: "Partido Liberal",
+                    data: libData,
+                    borderColor: "#ef4444",
+                    backgroundColor: "rgba(239,68,68,0.06)",
+                    borderWidth: 2.5,
+                    pointStyle: 'circle',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.3,
+                    fill: false,
+                    spanGaps: true,
+                    clip: false,
+                },
+                {
+                    label: "Partido Conservador",
+                    data: conData,
                     borderColor: "#f9a825",
                     backgroundColor: "rgba(249, 168, 37, 0.08)",
                     borderWidth: 2.5,
@@ -2060,8 +2019,8 @@ function renderAlignmentChart(data) {
                     clip: false,
                 },
                 {
-                    label: "LLA / PRO",
-                    data: llaData,
+                    label: "Centro Democrático",
+                    data: cdData,
                     borderColor: "#7b1fa2",
                     backgroundColor: "rgba(123, 31, 162, 0.08)",
                     borderWidth: 2.5,
@@ -2223,18 +2182,12 @@ function renderVotesTable() {
             (v) => {
                 // compute source link if available
                 let linkHtml = "";
-                const href = v.url || (v.ch === "diputados" && v.vid ? `https://votaciones.hcdn.gob.ar/votacion/${v.vid}` : null);
+                const href = v.url || null;
                 if (href) {
                     linkHtml = `<a class="vote-link" href="${escapeAttr(href)}" target="_blank" title="Ver votación original">🔗</a>`;
                 }
-                // determine which opposition coalition applies for this vote's year
-                const yr = v.yr || null;
-                const oppKey = yr === null ? null : (yr <= 2014 ? 'UCR' : (yr <= 2023 ? 'JxC' : 'LLA'));
 
-                const pjCell = `<span class="vote-chip vote-${v.pj}">${formatVote(v.pj)}</span>`;
-                const ucrCell = (oppKey === 'UCR' && v.ucr) ? `<span class="vote-chip vote-${v.ucr}">${formatVote(v.ucr)}</span>` : `<span class="vote-chip vote-na">-</span>`;
-                const jxcCell = (oppKey === 'JxC' && v.pro) ? `<span class="vote-chip vote-${v.pro}">${formatVote(v.pro)}</span>` : `<span class="vote-chip vote-na">-</span>`;
-                const llaCell = (oppKey === 'LLA' && v.lla) ? `<span class="vote-chip vote-${v.lla}">${formatVote(v.lla)}</span>` : `<span class="vote-chip vote-na">-</span>`;
+                const fmt = (val) => val ? `<span class="vote-chip vote-${val}">${formatVote(val)}</span>` : `<span class="vote-chip vote-na">-</span>`;
 
                 return `
         <tr>
@@ -2245,10 +2198,10 @@ function renderVotesTable() {
             </td>
             <td class="vote-source-cell">${linkHtml}</td>
             <td><span class="vote-chip vote-${v.v}">${formatVote(v.v)}</span></td>
-            <td>${pjCell}</td>
-            <td>${ucrCell}</td>
-            <td>${jxcCell}</td>
-            <td>${llaCell}</td>
+            <td>${fmt(v.ph)}</td>
+            <td>${fmt(v.lib)}</td>
+            <td>${fmt(v.con)}</td>
+            <td>${fmt(v.cd)}</td>
         </tr>`;
             }
         )
@@ -2413,14 +2366,14 @@ function parseArgDate(dateStr) {
             const updEl = document.getElementById("stat-updated");
 
             if (legsEl) legsEl.textContent = stats.total_legislators ?? "-";
-            const totalVot = (stats.total_votaciones_diputados || 0) + (stats.total_votaciones_senadores || 0);
+            const totalVot = (stats.total_votaciones_representantes || 0) + (stats.total_votaciones_senadores || 0);
             if (votEl) votEl.textContent = totalVot || "-";
-            const dipYears = stats.years_diputados || [];
+            const repYears = stats.years_representantes || [];
             const senYears = stats.years_senadores || [];
             if (yrsEl) {
-                const dipStr = dipYears.length ? `${dipYears[0]}\u2013${dipYears[dipYears.length - 1]}` : "-";
+                const repStr = repYears.length ? `${repYears[0]}\u2013${repYears[repYears.length - 1]}` : "-";
                 const senStr = senYears.length ? `${senYears[0]}\u2013${senYears[senYears.length - 1]}` : "-";
-                yrsEl.innerHTML = `<small style="font-size:0.72em;line-height:1.5;display:block">Dip.&nbsp;${dipStr}<br>Sen.&nbsp;${senStr}</small>`;
+                yrsEl.innerHTML = `<small style="font-size:0.72em;line-height:1.5;display:block">Rep.&nbsp;${repStr}<br>Sen.&nbsp;${senStr}</small>`;
             }
             if (updEl) updEl.textContent = stats.last_updated ? new Date(stats.last_updated).toLocaleString("es-AR", { hour12: false }) : "-";
         } else {
@@ -2634,7 +2587,7 @@ function parseArgDate(dateStr) {
     // Handle URL hash and parameters for rankings
     function applyRankingFiltersFromUrl() {
         // Parse hash which may contain both section and query params
-        // e.g., #ranking-afinidad?ra-coalition=JxC&ra-sort=vpj
+        // e.g., #ranking-afinidad?ra-coalition=PACTO&ra-sort=vph
         let hash = window.location.hash;
         let params = new URLSearchParams(window.location.search);
         

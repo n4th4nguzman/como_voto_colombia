@@ -153,6 +153,9 @@ class ConsolidatedDB:
         slug_match = re.search(r"/votacion/([^/]+)/\d+$", raw_url)
         if slug_match:
             entry["sl"] = slug_match.group(1)
+        elif raw_url:
+            # Non-HCDN URL (e.g. Colombian sources) — store directly
+            entry["url"] = raw_url
 
         self.votaciones.append(entry)
         self._votacion_ids.add(vid)
@@ -193,6 +196,10 @@ class ConsolidatedDB:
                 url = f"{HCDN_BASE}/votacion/{votacion_id}"
         elif chamber == "senadores" and compact.get("id"):
             url = f"{SENADO_BASE}/votaciones/detalleActa/{compact.get('id')}"
+
+        # Fall back to directly-stored URL for non-Argentine chambers
+        if not url:
+            url = compact.get("url", "")
 
         return {
             "id": compact.get("id", ""),
